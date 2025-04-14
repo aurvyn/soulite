@@ -102,7 +102,7 @@ This is where it gets quite similar to Rust. The `T` used here is a generic type
 ```
 .init | String[]
 [] = cout <| "Usage: main [-h] <command> <..args>"
-["fac" n] = cout <| factorial(n 0)
+["fac" 'n] = cout <| factorial(n 0)
 ["people"] =
     ,john = Person("John" 21 ["car keys" "credit card"])
     john.growUp(3)
