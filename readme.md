@@ -96,7 +96,7 @@ Similar to `<<`, except that it acts as a "closing version". This means that thi
         age
 ```
 
-This is where it gets quite similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `^Animal @Person` as "implement Animal for Person". From here you can also see some of Haskell-inspired syntax for the method `growUp`. Since the parameter type and return type has already been defined, all we need to do here is to insert a variable name for the parameters.
+This is where it gets quite similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `^Animal @Person` as "implement Animal for Person". From here you can also see some of Haskell-inspired syntax for the method `growUp`. Since the parameter type and return type has already been defined, all we need to do here is to insert a variable name for the parameter.
 
 ## Init Function
 ```
