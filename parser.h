@@ -2,64 +2,78 @@
 #include <string>
 #include <vector>
 #include "ast.h"
+#include "globals.h"
 #include "lexer.h"
+
+static Token current_token_type;
+
+static void getNextToken() {
+    current_token_type = getToken();
+}
 
 static std::unique_ptr<ExprAST> parseExpression();
 
-static int current_token;
-static int getNextToken() {
-    return current_token = gettok();
-}
-
-inline std::unique_ptr<ExprAST> logError(const char *str) {
-    fprintf(stderr, "Error: %s\n", str);
-    return nullptr;
-}
-
-inline std::unique_ptr<PrototypeAST> logErrorP(const char *str) {
-    logError(str);
-    return nullptr;
-}
-
-template<typename T>
-static std::unique_ptr<ExprAST> parseValueExpr() {
-    std::unique_ptr<ExprAST> result;
-    if (std::is_same<T, float>::value) {
-        result = std::make_unique<ValueExprAST<float>>(f_num);
-    } else if (std::is_same<T, int>::value) {
-        result = std::make_unique<ValueExprAST<int>>(i_num);
-    } else {
-        logError("Unsupported type for value expression");
+static std::unique_ptr<ExprAST> parseFloatExpr() {
+    if (current_token_type != FLOAT) {
+        logError("Expected a float expression");
         return nullptr;
     }
-    getNextToken(); // consume the number
+    auto result = std::make_unique<LiteralExprAST<float>>(current_float);
+    getNextToken(); // consume float
     return result;
 };
+
+static std::unique_ptr<ExprAST> parseIntExpr() {
+    if (current_token_type != INT) {
+        logError("Expected an integer expression");
+        return nullptr;
+    }
+    auto result = std::make_unique<LiteralExprAST<int>>(current_int);
+    getNextToken(); // consume integer
+    return result;
+}
+
+static std::unique_ptr<ExprAST> parseStringExpr() {
+    if (current_token_type != STRING) {
+        logError("Expected a string expression");
+        return nullptr;
+    }
+    auto result = std::make_unique<LiteralExprAST<std::string>>(current_token);
+    getNextToken(); // consume string
+    return result;
+}
+
+static std::unique_ptr<ExprAST> parseTypeExpr() {
+    if (current_token_type != TYPE) {
+        logError("Expected a type expression");
+        return nullptr;
+    }
+    auto result = std::make_unique<LiteralExprAST<std::string>>(current_token);
+    getNextToken(); // consume type
+    return result;
+}
 
 static std::unique_ptr<ExprAST> parseParenExpr() {
     getNextToken(); // consume '('
     auto expr = parseExpression();
     if (!expr) return nullptr;
-    if (current_token != ')') logError("Expected ')'");
+    if (current_token_type != RPAREN) logError("Expected ')'");
     getNextToken(); // consume ')'
     return expr;
 }
 
 static std::unique_ptr<ExprAST> parseIdentifierExpr() {
-    std::string idName = str;
+    std::string idName = current_token;
     getNextToken(); // consume identifier
-    if (current_token != '(') return std::make_unique<VariableExprAST>(idName);
+    if (current_token_type != LPAREN) return std::make_unique<VariableExprAST>(idName);
     
     getNextToken(); // consume '('
     std::vector<std::unique_ptr<ExprAST>> args;
-    if (current_token != ')') {
-        while (true) {
-            if (auto arg = parseExpression()) {
-                args.push_back(std::move(arg));
-            } else {
-                return nullptr;
-            }
-            if (current_token == ')') break;
+    while (current_token_type != RPAREN) {
+        if (auto arg = parseExpression()) {
+            args.push_back(std::move(arg));
+        } else {
+            return nullptr;
         }
     }
     
@@ -68,28 +82,30 @@ static std::unique_ptr<ExprAST> parseIdentifierExpr() {
 }
 
 static std::unique_ptr<ExprAST> parsePrimary() {
-    switch (current_token) {
+    switch (current_token_type) {
         case IDENTIFIER:
             return parseIdentifierExpr();
         case FLOAT:
-            return parseValueExpr<float>();
+            return parseFloatExpr();
         case INT:
-            return parseValueExpr<int>();
-        case '(':
+            return parseIntExpr();
+        case STRING:
+            return parseStringExpr();
+        case LPAREN:
             return parseParenExpr();
         default:
-            return logError("Unknown token when expecting an expression");
+            logError("Unknown token when expecting an expression");
+            return nullptr;
     }
 }
 
-static int binopPrecedence(BiOp op) {
+static int binopPrecedence(Token op) {
     return static_cast<int>(op) / 10 * 10;
 };
 
 static int getTokPrecedence() {
-    if (!isascii(current_token)) return -1;
-    int tokPrec = binopPrecedence(RANGE); // fix this later, have to find out what the binary operator is through lexer
-    if (tokPrec <= 0) return -1;
+    int tokPrec = binopPrecedence(current_token_type);
+    if (tokPrec > 80) return -1;
     return tokPrec;
 }
 
@@ -98,7 +114,7 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int exprPrec, std::unique_ptr<Expr
         int tokPrec = getTokPrecedence();
         if (tokPrec < exprPrec) return lhs;
         
-        BiOp binOp = RANGE; // fix this later, have to find out what the binary operator is through lexer
+        Token binOp = current_token_type;
         getNextToken(); // consume binop
         
         auto rhs = parsePrimary();
