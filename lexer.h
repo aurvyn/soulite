@@ -1,74 +1,64 @@
 #include <string>
-
-enum Token {
-    EoF = -1,
-    VAR = -2,
-    CONST = -3,
-    FUNCTION = -4,
-    STRUCT = -5,
-    TRAIT = -6,
-    IMPORT = -7,
-    IDENTIFIER = -8,
-    NUMBER = -9,
-};
-
-static std::string IdentifierStr;
-static double NumVal;
+#include "globals.h"
 
 static int gettok() {
-    static int LastChar = ' ';
+    static int lastChar = ' ';
     
     // Skip whitespace
-    while (isspace(LastChar)) {
-        LastChar = getchar();
+    while (isspace(lastChar)) {
+        lastChar = getchar();
     }
 
-    if (LastChar == ',') return VAR;
-    if (LastChar == '\'') return CONST;
-    if (LastChar == '.') return FUNCTION;
-    if (LastChar == '@') return STRUCT;
-    if (LastChar == '#') return TRAIT;
-    if (LastChar == '$') return IMPORT;
+    if (lastChar == ',') lastChar = VAR;
+    if (lastChar == '\'') lastChar = CONST;
+    if (lastChar == '.') lastChar = FUNCTION;
+    if (lastChar == '@') lastChar = STRUCT;
+    if (lastChar == '#') lastChar = TRAIT;
+    if (lastChar == '$') lastChar = IMPORT;
 
     // Identifier: [a-zA-Z][a-zA-Z0-9]*
-    if (isalpha(LastChar)) {
-        IdentifierStr = LastChar;
-        while (isalnum((LastChar = getchar()))) {
-            IdentifierStr += LastChar;
+    if (isalpha(lastChar)) {
+        str = lastChar;
+        while (isalnum((lastChar = getchar()))) {
+            str += lastChar;
         }
         return IDENTIFIER;
     }
 
     // Number: [0-9.]+
-    if (isdigit(LastChar) || LastChar == '.') {
-        int periods = LastChar == '.';
-        std::string NumStr;
+    if (isdigit(lastChar) || lastChar == '.') {
+        int periods = lastChar == '.';
+        std::string numStr;
         do {
-            NumStr += LastChar;
-            LastChar = getchar();
-            periods += LastChar == '.';
-        } while (isdigit(LastChar) || LastChar == '.');
+            numStr += lastChar;
+            lastChar = getchar();
+            periods += lastChar == '.';
+        } while (isdigit(lastChar) || lastChar == '.');
         if (periods > 1) {
-            fprintf(stderr, "Error: Invalid number format `%s`\n", NumStr.c_str());
+            fprintf(stderr, "Error: Invalid number format `%s`\n", numStr.c_str());
             return 0;
+        } else if (periods == 1) {
+            f_num = std::stof(numStr);
+            return FLOAT;
+        } else {
+            i_num = std::stoi(numStr);
+            return INT;
         }
-        NumVal = strtod(NumStr.c_str(), 0);
-        return NUMBER;
     }
 
     // Comment or EOF
-    if (LastChar == ';') {
+    if (lastChar == ';') {
         do {
-            LastChar = getchar();
-        } while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
-        if (LastChar != EOF) return gettok();
+            lastChar = getchar();
+        } while (lastChar != EOF && lastChar != '\n' && lastChar != '\r');
+        if (lastChar != EOF) return gettok();
     }
 
     // End of file
-    if (LastChar == EOF) return EoF;
+    if (lastChar == EOF) return EoF;
 
     // Any other character
-    int ThisChar = LastChar;
-    LastChar = getchar();
-    return ThisChar;
+    int thisChar = lastChar;
+    lastChar = getchar();
+    return thisChar;
 }
