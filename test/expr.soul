@@ -1,0 +1,7 @@
+; this is a comment
+
+$std-cout
+
+'myInt = 32
+
+,myStr = "this is a string"
