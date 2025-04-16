@@ -39,10 +39,20 @@ public:
 
 class PrototypeAST {
     std::string name;
+    std::vector<std::string> argTypes;
     std::vector<std::string> args;
+    std::string returnType;
 public:
-    PrototypeAST(const std::string &name, std::vector<std::string> args)
-        : name(name), args(std::move(args)) {}
+    PrototypeAST(
+        const std::string &name,
+        std::vector<std::string> argTypes,
+        std::vector<std::string> args,
+        std::string returnType
+    ) : name(name),
+        argTypes(std::move(argTypes)),
+        args(std::move(args)),
+        returnType(std::move(returnType))
+    {}
 
     const std::string &getName() const { return name; }
 };

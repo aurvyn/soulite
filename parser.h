@@ -7,8 +7,9 @@
 
 static Token current_token_type;
 
-static void getNextToken() {
+static Token getNextToken() {
     current_token_type = getToken();
+    return current_token_type;
 }
 
 static std::unique_ptr<ExprAST> parseExpression();
@@ -57,7 +58,7 @@ static std::unique_ptr<ExprAST> parseParenExpr() {
     getNextToken(); // consume '('
     auto expr = parseExpression();
     if (!expr) return nullptr;
-    if (current_token_type != RPAREN) logError("Expected ')'");
+    if (current_token_type != RPAREN) logError("Expected `)`");
     getNextToken(); // consume ')'
     return expr;
 }
@@ -135,4 +136,100 @@ static std::unique_ptr<ExprAST> parseExpression() {
     if (!lhs) return nullptr;
     
     return ParseBinOpRHS(0, std::move(lhs));
+}
+
+static std::unique_ptr<PrototypeAST> parsePrototype() {
+    if (current_token_type != IDENTIFIER) {
+        logError("Expected function name in prototype");
+        return nullptr;
+    }
+    
+    std::string fnName = current_token;
+    getNextToken(); // consume function name
+    
+    if (current_token_type != PIPE) {
+        logError("Expected `|` in prototype");
+        return nullptr;
+    }
+    
+    std::vector<std::string> argTypes;
+    std::string returnType;
+    while (getNextToken() == TYPE) {
+        argTypes.push_back(current_token);
+    }
+    
+    if (current_token_type == ARROW) {
+        if (getNextToken() == TYPE) {
+            returnType = current_token;
+        } else {
+            logError("Expected return type in prototype");
+            return nullptr;
+        }
+    }
+    
+    std::vector<std::string> args;
+    for (int i = 0; i < argTypes.size(); ++i) {
+        if (current_token_type != APOSTROPHE && current_token_type != COMMA) {
+            logError("Expected `'` or `,` in argument list");
+            return nullptr;
+        }
+        getNextToken(); // consume APOS or COMMA
+        if (current_token_type != IDENTIFIER) {
+            logError("Expected argument name");
+            return nullptr;
+        }
+        args.push_back(current_token);
+        getNextToken(); // consume argument name
+    }
+
+    if (current_token_type != ASSIGN) {
+        logError("Expected `=` in prototype");
+        return nullptr;
+    }
+    getNextToken(); // consume '='
+    
+    return std::make_unique<PrototypeAST>(
+        fnName,
+        std::move(argTypes),
+        std::move(args),
+        std::move(returnType)
+    );
+}
+
+static std::unique_ptr<FunctionAST> parseDefinition() {
+    getNextToken(); // consume '.'
+    
+    auto proto = parsePrototype();
+    if (!proto) return nullptr;
+    
+    if (auto body = parseExpression()) {
+        return std::make_unique<FunctionAST>(std::move(proto), std::move(body));
+    }
+    return nullptr;
+}
+
+static std::unique_ptr<FunctionAST> parseTopLevelExpr() {
+    if (auto expr = parseExpression()) {
+        auto proto = std::make_unique<PrototypeAST>("", std::vector<std::string>(), std::vector<std::string>(), "");
+        return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
+    }
+    return nullptr;
+}
+
+static void mainLoop() {
+    while (true) {
+        fprintf(stderr, ">>> ");
+        switch (current_token_type) {
+            case EoF:
+                return;
+            case COMMENT:
+                continue;
+            case DOT:
+                parseDefinition();
+                break;
+            default:
+                parseTopLevelExpr();
+                break;
+        }
+    }
 }
