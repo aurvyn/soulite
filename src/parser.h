@@ -1,3 +1,6 @@
+#pragma once
+#include <cstdio>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -9,6 +12,7 @@ static Token current_token_type;
 
 static Token getNextToken() {
     current_token_type = getToken();
+    // std::cout << "Current token: " << current_token << " (" << current_token_type << ")" << std::endl;
     return current_token_type;
 }
 
@@ -82,8 +86,32 @@ static std::unique_ptr<ExprAST> parseIdentifierExpr() {
     return std::make_unique<CallExprAST>(idName, std::move(args));
 }
 
+static std::unique_ptr<ExprAST> parseVarExpr(bool isMutable) {
+    getNextToken(); // consume ' or ,
+    if (current_token_type != IDENTIFIER) {
+        logError("Expected identifier after `'` or `,`");
+        return nullptr;
+    }
+    std::string name = current_token;
+    getNextToken(); // consume identifier
+    if (current_token_type == ASSIGN) {
+        getNextToken(); // consume '='
+        auto expr = parseExpression();
+        if (!expr) {
+            logError("Expected expression after `=`");
+            return nullptr;
+        }
+        return std::make_unique<VarExprAST>(name, isMutable, std::move(expr));
+    }
+    return std::make_unique<VarExprAST>(name, isMutable);
+}
+
 static std::unique_ptr<ExprAST> parsePrimary() {
     switch (current_token_type) {
+        case APOSTROPHE:
+            return parseVarExpr(false);
+        case COMMA:
+            return parseVarExpr(true);
         case IDENTIFIER:
             return parseIdentifierExpr();
         case FLOAT:
@@ -94,9 +122,12 @@ static std::unique_ptr<ExprAST> parsePrimary() {
             return parseStringExpr();
         case LPAREN:
             return parseParenExpr();
+        case COMMENT:
+            getNextToken(); // consume comment
+            return parsePrimary();
         default:
             logError("Unknown token when expecting an expression");
-            return nullptr;
+            exit(1);
     }
 }
 
@@ -105,8 +136,8 @@ static int binopPrecedence(Token op) {
 };
 
 static int getTokPrecedence() {
+    if (current_token_type > 90) return -1;
     int tokPrec = binopPrecedence(current_token_type);
-    if (tokPrec > 80) return -1;
     return tokPrec;
 }
 
@@ -196,6 +227,31 @@ static std::unique_ptr<PrototypeAST> parsePrototype() {
     );
 }
 
+static std::unique_ptr<ImportAST> parseImport() {
+    getNextToken(); // consume '$'
+
+    if (current_token_type != IDENTIFIER) {
+        logError("Expected identifier after `$`");
+        exit(1);
+    }
+    
+    std::string importName = current_token;
+    std::vector<std::unique_ptr<ImportAST>> imports = {};
+    getNextToken(); // consume identifier
+    if (current_token_type == COLON) {
+        getNextToken(); // consume ':'
+        if (current_token_type != IDENTIFIER) { // for now, only support single identifier imports
+            logError("Expected identifier after `:`");
+            exit(1);
+        }
+        imports.push_back(std::make_unique<ImportAST>(current_token));
+        getNextToken(); // consume identifier
+    }
+    auto import = std::make_unique<ImportAST>(importName, std::move(imports));
+    std::cout << "Parsed import: $" << import->to_string() << std::endl;
+    return import;
+}
+
 static std::unique_ptr<FunctionAST> parseDefinition() {
     getNextToken(); // consume '.'
     
@@ -203,27 +259,33 @@ static std::unique_ptr<FunctionAST> parseDefinition() {
     if (!proto) return nullptr;
     
     if (auto body = parseExpression()) {
-        return std::make_unique<FunctionAST>(std::move(proto), std::move(body));
+        auto func = std::make_unique<FunctionAST>(std::move(proto), std::move(body));
+        std::cout << "Parsed function: " << func->to_string() << std::endl;
+        return func;
     }
     return nullptr;
 }
 
 static std::unique_ptr<FunctionAST> parseTopLevelExpr() {
     if (auto expr = parseExpression()) {
+        std::cout << "Parsed top-level expression: " << expr->to_string() << std::endl;
         auto proto = std::make_unique<PrototypeAST>("", std::vector<std::string>(), std::vector<std::string>(), "");
         return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
     }
+    logError("Expected expression at top level");
     return nullptr;
 }
 
 static void mainLoop() {
+    getNextToken(); // prime the first token
     while (true) {
-        fprintf(stderr, ">>> ");
         switch (current_token_type) {
             case EoF:
+                std::cout << "Ending parser..." << std::endl;
                 return;
-            case COMMENT:
-                continue;
+            case DOLLAR:
+                parseImport();
+                break;
             case DOT:
                 parseDefinition();
                 break;

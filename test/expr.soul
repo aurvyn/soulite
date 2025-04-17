@@ -1,6 +1,6 @@
 ; this is a comment
 
-$std-cout
+$std:cout ; imports cout from std
 
 'myInt = 32
 

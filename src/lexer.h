@@ -1,141 +1,163 @@
+#pragma once
 #include <cctype>
 #include <cstdio>
 #include <string>
+#include <fstream>
 #include "globals.h"
 
+static std::ifstream file;
 static std::string current_token;
 static float current_float;
 static int current_int;
 
+#define CONSUME_RETURN(chr, token) if (lastChar == chr) { \
+    current_token = lastChar; \
+    file.get(lastChar); \
+    return token; \
+}
+
 static Token getToken() {
     static char lastChar = ' ';
     current_token.clear();
+
+    // End of file
+    if (lastChar == EOF) {
+        printf("End of file reached\n");
+        file.close();
+        return EoF;
+    }
     
     // Skip whitespace
-    while (isspace(lastChar)) {
-        lastChar = getchar();
+    while (file && isspace(lastChar)) {
+        file.get(lastChar);
+        if (file.eof()) {
+            return EoF;
+        }
     }
 
     if (lastChar == '!') {
-        lastChar = getchar();
-        if (lastChar == '=') return NE;
+        file.get(lastChar);
+        CONSUME_RETURN('=', NE);
         return EXCL;
     }
     if (lastChar == '-') {
-        lastChar = getchar();
-        if (lastChar == '=') return MINUS_EQ;
-        if (lastChar == '-') return DEC;
-        if (lastChar == '>') return ARROW;
+        file.get(lastChar);
+        CONSUME_RETURN('=', MINUS_EQ);
+        CONSUME_RETURN('-', NE);
+        CONSUME_RETURN('>', ARROW);
         return DASH;
     }
     if (lastChar == '+') {
-        lastChar = getchar();
-        if (lastChar == '=') return PLUS_EQ;
-        if (lastChar == '+') return INC;
+        file.get(lastChar);
+        CONSUME_RETURN('=', PLUS_EQ);
+        CONSUME_RETURN('+', INC);
         return PLUS;
     }
     if (lastChar == '/') {
-        lastChar = getchar();
-        if (lastChar == '=') return DIV_EQ;
+        file.get(lastChar);
+        CONSUME_RETURN('=', DIV_EQ);
         return DIV;
     }
     if (lastChar == '*') {
-        lastChar = getchar();
-        if (lastChar == '=') return MUL_EQ;
+        file.get(lastChar);
+        CONSUME_RETURN('=', MUL_EQ);
         if (lastChar == '*') {
-            lastChar = getchar();
-            return lastChar == '=' ? EXP_EQ : EXP;
+            file.get(lastChar);
+            CONSUME_RETURN('=', EXP_EQ);
+            return EXP;
         }
         return ASTER;
     }
     if (lastChar == '%') {
-        lastChar = getchar();
-        if (lastChar == '=') return MOD_EQ;
+        file.get(lastChar);
+        CONSUME_RETURN('=', MOD_EQ);
         return MOD;
     }
-    if (lastChar == '(') return LPAREN;
-    if (lastChar == ')') return RPAREN;
-    if (lastChar == '{') return LBRACE;
-    if (lastChar == '}') return RBRACE;
-    if (lastChar == '[') return LBRACK;
-    if (lastChar == ']') return RBRACK;
-    if (lastChar == ',') return COMMA;
-    if (lastChar == ':') return COLON;
+    CONSUME_RETURN('(', LPAREN);
+    CONSUME_RETURN(')', RPAREN);
+    CONSUME_RETURN('{', LBRACE);
+    CONSUME_RETURN('}', RBRACE);
+    CONSUME_RETURN('[', LBRACK);
+    CONSUME_RETURN(']', RBRACK);
+    CONSUME_RETURN(',', COMMA);
+    CONSUME_RETURN(':', COLON);
     if (lastChar == '.') {
-        lastChar = getchar();
-        if (lastChar == '.') return RANGE;
+        file.get(lastChar);
+        CONSUME_RETURN('.', RANGE);
         return DOT;
     }
     if (lastChar == '&') {
-        lastChar = getchar();
-        if (lastChar == '=') return AND_EQ;
-        if (lastChar == '&') return AND;
+        file.get(lastChar);
+        CONSUME_RETURN('=', AND_EQ);
+        CONSUME_RETURN('&', AND);
         return AMP;
     }
     if (lastChar == '|') {
-        lastChar = getchar();
-        if (lastChar == '=') return OR_EQ;
-        if (lastChar == '|') return OR;
-        if (lastChar == '>') return SHRX;
+        file.get(lastChar);
+        CONSUME_RETURN('=', OR_EQ);
+        CONSUME_RETURN('|', OR);
+        CONSUME_RETURN('>', SHRX);
         return PIPE;
     }
     if (lastChar == '~') {
-        lastChar = getchar();
-        if (lastChar == '=') return INV_EQ;
+        file.get(lastChar);
+        CONSUME_RETURN('=', INV_EQ);
         return TILDE;
     }
     if (lastChar == '^') {
-        lastChar = getchar();
-        if (lastChar == '=') return XOR_EQ;
+        file.get(lastChar);
+        CONSUME_RETURN('=', XOR_EQ);
         return XOR;
     }
     if (lastChar == '<') {
-        lastChar = getchar();
-        if (lastChar == '=') return LE;
+        file.get(lastChar);
+        CONSUME_RETURN('=', LE);
         if (lastChar == '|') {
-            lastChar = getchar();
-            return lastChar == '=' ? SHLX_EQ : SHLX;
+            file.get(lastChar);
+            CONSUME_RETURN('=', SHLX_EQ);
+            return SHLX;
         }
         if (lastChar == '<') {
-            lastChar = getchar();
-            return lastChar == '=' ? SHL_EQ : SHL;
+            file.get(lastChar);
+            CONSUME_RETURN('=', SHL_EQ);
+            return SHL;
         }
         return LT;
     }
     if (lastChar == '>') {
-        lastChar = getchar();
-        if (lastChar == '=') return GE;
-        if (lastChar == '>') return SHR;
+        file.get(lastChar);
+        CONSUME_RETURN('=', GE);
+        CONSUME_RETURN('>', SHR);
         return GT;
     }
     if (lastChar == '=') {
-        lastChar = getchar();
-        if (lastChar == '=') return EQ;
+        file.get(lastChar);
+        CONSUME_RETURN('=', EQ);
         return ASSIGN;
     }
-    if (lastChar == '#') return POUND;
-    if (lastChar == '@') return AT;
-    if (lastChar == '$') return DOLLAR;
-    if (lastChar == '\'') return APOSTROPHE;
+    CONSUME_RETURN('#', POUND);
+    CONSUME_RETURN('@', AT);
+    CONSUME_RETURN('$', DOLLAR);
+    CONSUME_RETURN('\'', APOSTROPHE);
 
     // Tokenize Comments
     if (lastChar == ';') {
-        lastChar = getchar();
+        file.get(lastChar);
         while (lastChar != EOF && lastChar != '\n' && lastChar != '\r') {
             current_token += lastChar;
-            lastChar = getchar();
+            file.get(lastChar);
         }
-        return COMMENT;
+        return getToken();
     }
 
     // Identifier: [a-z][a-zA-Z0-9]*
     // Type: [A-Z][a-zA-Z0-9]*
     if (isalpha(lastChar)) {
         Token tok = islower(lastChar) ? IDENTIFIER : TYPE;
-        current_token = lastChar;
-        while (isalnum((lastChar = getchar()))) {
+        do {
             current_token += lastChar;
-        }
+            file.get(lastChar);
+        } while (isalnum(lastChar));
         return tok;
     }
 
@@ -144,7 +166,7 @@ static Token getToken() {
         int periods = lastChar == '.';
         do {
             current_token += lastChar;
-            lastChar = getchar();
+            file.get(lastChar);
             periods += lastChar == '.';
         } while (isdigit(lastChar) || lastChar == '.');
         if (periods > 1) {
@@ -161,24 +183,18 @@ static Token getToken() {
 
     // String literal: ".*"
     if (lastChar == '"') {
-        lastChar = getchar();
+        file.get(lastChar);
         while (lastChar != EOF && lastChar != '"') {
             current_token += lastChar;
-            lastChar = getchar();
+            file.get(lastChar);
         }
         if (lastChar == '"') {
-            lastChar = getchar();
+            file.get(lastChar);
             return STRING;
         } else {
             logError("String literal does not have a closing quote");
             return INVALID;
         }
-    }
-
-    // End of file
-    if (lastChar == EOF) {
-        logError("End of file reached");
-        return EoF;
     }
 
     // Any other character

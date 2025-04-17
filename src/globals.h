@@ -2,28 +2,29 @@
 #include <cstdio>
 
 enum Token {
-    RANGE = 0,  // ..
-    AND = 10,   // &&
-    OR = 11,    // ||
-    AMP = 20,   // &
-    PIPE = 21,  // |
-    LT = 30,    // <
-    GT = 31,    // >
-    LE = 32,    // <=
-    GE = 33,    // >=
-    EQ = 34,    // ==
-    NE = 35,    // !=
-    SHL = 40,   // <<
-    SHR = 41,   // >>
-    SHLX = 42,  // <|
-    SHRX = 43,  // |>
-    PLUS = 50,  // +
-    DASH = 51,  // -
-    ASTER = 60, // *
-    DIV = 61,   // /
-    MOD = 62,   // %
-    EXP = 70,   // **
-    DOT = 80,   // .
+    ASSIGN = 0, // =
+    RANGE = 10, // ..
+    AND = 20,   // &&
+    OR = 21,    // ||
+    AMP = 30,   // &
+    PIPE = 31,  // |
+    LT = 40,    // <
+    GT = 41,    // >
+    LE = 42,    // <=
+    GE = 43,    // >=
+    EQ = 44,    // ==
+    NE = 45,    // !=
+    SHL = 50,   // <<
+    SHR = 51,   // >>
+    SHLX = 52,  // <|
+    SHRX = 53,  // |>
+    PLUS = 60,  // +
+    DASH = 61,  // -
+    ASTER = 70, // *
+    DIV = 71,   // /
+    MOD = 72,   // %
+    EXP = 80,   // **
+    DOT = 90,   // .
     INVALID,
     EoF,
     EXCL,       // !
@@ -44,7 +45,6 @@ enum Token {
     DOLLAR,     // $
     APOSTROPHE, // '
     ARROW,      // ->
-    ASSIGN,     // =
     PLUS_EQ,    // +=
     MINUS_EQ,   // -=
     MUL_EQ,     // *=
