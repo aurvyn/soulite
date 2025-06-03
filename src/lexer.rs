@@ -1,24 +1,24 @@
 use logos::Logos;
 
 #[derive(Logos, Debug, PartialEq)]
-#[logos(skip r"[ \t\n\r]+")]
+#[logos(skip r" +")]
 pub enum Token {
-    #[regex(r"[a-z][a-zA-Z0-9_]*", priority = 3)]
+    #[regex(r"[a-z]\w*")]
     Identifier,
 
-    #[regex(r"[A-Z][a-zA-Z0-9]*", priority = 3)]
+    #[regex(r"[A-Z]\w*")]
     Type,
 
-    #[regex(r"[0-9]*.[0-9]+", priority = 4)]
+    #[regex(r"(?:\d+\.\d*|\.\d+)")]
     Float,
 
-    #[regex(r"[0-9]+", priority = 5)]
+    #[regex(r"\d+")]
     Integer,
 
-    #[regex(".+", priority = 7)]
+    #[regex("\".*\"")]
     String,
 
-    #[token(";")]
+    #[token(r";([^\n]*)")]
     Comment,
 
     #[token("=")]
@@ -179,4 +179,10 @@ pub enum Token {
 
     #[token("<|=")]
     PipeLeftAssign,
+
+    #[token("\t")]
+    Tab,
+
+    #[token("\n")]
+    Newline,
 }

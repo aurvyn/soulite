@@ -1,93 +1,77 @@
-trait ExprAST {
+pub enum Literal {
+    Integer(i64),
+    Float(f64),
+    String(String),
+}
+
+impl ToString for Literal {
+    fn to_string(&self) -> String {
+        match self {
+            Literal::Integer(i) => i.to_string(),
+            Literal::Float(f) => f.to_string(),
+            Literal::String(s) => format!("\"{}\"", s),
+        }
+    }
+}
+
+pub enum Expr {
+    Literal(Literal),
+    Variable(String),
+    Binary {
+        op: String,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
+    Call {
+        callee: String,
+        args: Vec<Expr>,
+    },
+    Assign {
+        name: String,
+        mutable: bool,
+        value: Box<Expr>,
+    },
+}
+
+pub trait ToRust {
     fn to_rust(&self) -> String;
 }
 
-trait ParameterAST: ExprAST { }
-
-struct LiteralExprAST<T> {
-    pub value: T,
-}
-
-impl<T: ToString> ExprAST for LiteralExprAST<T> {
+impl ToRust for Expr {
     fn to_rust(&self) -> String {
-        self.value.to_string()
+        match self {
+            Expr::Literal(lit) => lit.to_string(),
+            Expr::Variable(name) => name.clone(),
+            Expr::Binary { op, lhs, rhs } =>
+                format!("{} {} {}", lhs.to_rust(), op, rhs.to_rust()),
+            Expr::Call { callee, args } =>
+                format!("{}({})", callee, args.iter()
+                    .map(|arg| arg.to_rust())
+                    .collect::<Vec<_>>()
+                    .join(", ")),
+            Expr::Assign { name, mutable, value } =>
+                format!("let {}{} = {};", if *mutable { "mut " } else { "" }, name, value.to_rust()),
+        }
     }
 }
 
-impl<T: ToString> ParameterAST for LiteralExprAST<T> { }
-
-struct VariableExprAST {
-    pub name: String,
-}
-
-impl ExprAST for VariableExprAST {
-    fn to_rust(&self) -> String {
-        self.name.clone()
-    }
-}
-
-impl ParameterAST for VariableExprAST { }
-
-struct BinaryExprAST<'ast> {
-    pub op: String,
-    pub lhs: &'ast dyn ExprAST,
-    pub rhs: &'ast dyn ExprAST,
-}
-
-impl ExprAST for BinaryExprAST<'_> {
-    fn to_rust(&self) -> String {
-        format!("{} {} {}", self.lhs.to_rust(), self.op, self.rhs.to_rust())
-    }
-}
-
-struct CallExprAST<'ast> {
-    pub callee: String,
-    pub args: Vec<&'ast dyn ExprAST>,
-}
-
-impl ExprAST for CallExprAST<'_> {
-    fn to_rust(&self) -> String {
-        format!(
-            "{}({})",
-            self.callee,
-            self.args.iter()
-                .map(|arg| arg.to_rust())
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    }
-}
-
-struct AssignExprAST<'ast> {
-    pub name: String,
-    pub mutable: bool,
-    pub value: &'ast dyn ExprAST,
-}
-
-impl ExprAST for AssignExprAST<'_> {
-    fn to_rust(&self) -> String {
-        let mutability = if self.mutable { "mut " } else { "" };
-        format!("let {}{} = {};", mutability, self.name, self.value.to_rust())
-    }
-}
-
-struct TypeSignatureAST {
+pub struct TypeSignature {
     pub name: String,
     pub arg_types: Vec<String>,
-    pub return_type: String,
+    pub return_type: Vec<String>,
 }
 
-struct EquationAST<'ast> {
-    pub parameters_list: Vec<&'ast dyn ParameterAST>,
-    pub body: Vec<&'ast dyn ExprAST>,
+pub struct Equation {
+    pub parameters_list: Vec<Expr>,
+    pub body: Vec<Expr>,
 }
 
-struct FunctionAST<'ast> {
-    pub signature: TypeSignatureAST,
-    pub equations: Vec<EquationAST<'ast>>,
+pub struct Function {
+    pub signature: TypeSignature,
+    pub equations: Vec<Equation>,
 }
 
-impl FunctionAST<'_> {
+impl Function {
     // only support one equation for now
     pub fn to_rust(&self) -> String {
         if self.equations.is_empty() {
@@ -100,7 +84,7 @@ impl FunctionAST<'_> {
             .map(|(t, param)| format!("{}: {}", param.to_rust(), t))
             .collect::<Vec<_>>()
             .join(", ");
-        let head = format!("fn {}({}) -> {}", signature.name, param, signature.return_type);
+        let head = format!("fn {}({}) -> ({})", signature.name, param, signature.return_type.join(", "));
         let body = equation.body.iter()
             .map(|expr| expr.to_rust())
             .collect::<Vec<_>>()
@@ -109,12 +93,30 @@ impl FunctionAST<'_> {
     }
 }
 
-struct ProgramAST<'ast> {
-    pub functions: Vec<FunctionAST<'ast>>,
-    pub variables: Vec<AssignExprAST<'ast>>,
+pub struct Import {
+    pub filename: String,
+    pub items: Vec<String>,
 }
 
-impl ProgramAST<'_> {
+impl Import {
+    pub fn to_rust(&self) -> String {
+        let module = format!("mod {};", self.filename);
+        if self.items.is_empty() {
+            module
+        } else {
+            let items = self.items.join(", ");
+            format!("{} use {}::{{{}}};", module, self.filename, items)
+        }
+    }
+}
+
+pub struct Program {
+    pub imports: Vec<Import>,
+    pub functions: Vec<Function>,
+    pub variables: Vec<Expr>,
+}
+
+impl Program {
     pub fn to_rust(&self) -> String {
         let functions = self.functions.iter()
             .map(|f| f.to_rust())
