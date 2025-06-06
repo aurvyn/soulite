@@ -125,11 +125,11 @@ impl Program {
         let functions = self.functions.iter()
             .map(|f| f.to_rust())
             .collect::<Vec<_>>()
-            .join("\n\n");
+            .join("\n\n\t");
         let variables = self.variables.iter()
             .map(|v| v.to_rust())
             .collect::<Vec<_>>()
-            .join("\n");
-        format!("{}\n\n{}\n\n{}", imports, variables, functions)
+            .join("\n\t");
+        format!("{}\n\nfn main() {{\n\t{}\n\n\t{}\n}}", imports, variables, functions)
     }
 }
