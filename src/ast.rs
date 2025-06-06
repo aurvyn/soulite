@@ -105,7 +105,7 @@ impl Import {
             module
         } else {
             let items = self.items.join(", ");
-            format!("{} use {}::{{{}}};", module, self.filename, items)
+            format!("{}\nuse {}::{{{}}};", module, self.filename, items)
         }
     }
 }
@@ -118,6 +118,10 @@ pub struct Program {
 
 impl Program {
     pub fn to_rust(&self) -> String {
+        let imports = self.imports.iter()
+            .map(|i| i.to_rust())
+            .collect::<Vec<_>>()
+            .join("\n");
         let functions = self.functions.iter()
             .map(|f| f.to_rust())
             .collect::<Vec<_>>()
@@ -126,6 +130,6 @@ impl Program {
             .map(|v| v.to_rust())
             .collect::<Vec<_>>()
             .join("\n");
-        format!("{}\n\n{}", variables, functions)
+        format!("{}\n\n{}\n\n{}", imports, variables, functions)
     }
 }

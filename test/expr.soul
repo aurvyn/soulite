@@ -5,3 +5,5 @@
 'myInt = 32
 
 ,myStr = "this is a string"
+
+; end

@@ -3,10 +3,10 @@ use logos::Logos;
 #[derive(Logos, Debug, PartialEq)]
 #[logos(skip r" +")]
 pub enum Token {
-    #[regex(r"[a-z]\w*")]
+    #[regex(r"\p{Ll}[_\p{L}]*")]
     Identifier,
 
-    #[regex(r"[A-Z]\w*")]
+    #[regex(r"\p{Lu}\p{L}*")]
     Type,
 
     #[regex(r"(?:\d+\.\d*|\.\d+)")]
@@ -15,10 +15,10 @@ pub enum Token {
     #[regex(r"\d+")]
     Integer,
 
-    #[regex("\".*\"")]
+    #[regex(r#""(?:[^"]|\\")*""#)]
     String,
 
-    #[token(r";([^\n]*)")]
+    #[regex(r";[^\n]*")]
     Comment,
 
     #[token("=")]
@@ -185,4 +185,46 @@ pub enum Token {
 
     #[token("\n")]
     Newline,
+}
+
+pub fn get_precedence(tok: &Token) -> u8 {
+    match tok {
+        Token::Assign
+        | Token::PlusAssign
+        | Token::MinusAssign
+        | Token::MultiplyAssign
+        | Token::DivideAssign
+        | Token::ModuloAssign
+        | Token::AndAssign
+        | Token::OrAssign
+        | Token::InverseAssign
+        | Token::XorAssign
+        | Token::ExponentAssign
+        | Token::ShiftLeftAssign
+        | Token::PipeLeftAssign => 1,
+        Token::Range => 2,
+        Token::And
+        | Token::Or => 3,
+        Token::Pipe => 4,
+        Token::Caret => 5,
+        Token::Amp => 6,
+        Token::LessThan
+        | Token::GreaterThan
+        | Token::LessThanOrEqual
+        | Token::GreaterThanOrEqual
+        | Token::Equal
+        | Token::NotEqual => 7,
+        Token::ShiftLeft
+        | Token::ShiftRight
+        | Token::PipeLeft
+        | Token::PipeRight => 8,
+        Token::Plus
+        | Token::Minus => 9,
+        Token::Multiply
+        | Token::Divide
+        | Token::Modulo => 10,
+        Token::Exponent => 11,
+        Token::Dot => 12,
+        _ => 0,
+    }
 }
