@@ -17,7 +17,7 @@ use crate::{
     }
 };
 
-pub fn parse(file_name: &str) -> Result<Program, String> {
+pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
     let soulite_source = std::fs::read_to_string(file_name)
         .map_err(|e| format!("Failed to read file {}: {}", file_name, e))?;
     let mut lex = Token::lexer(&soulite_source);
@@ -29,7 +29,9 @@ pub fn parse(file_name: &str) -> Result<Program, String> {
     loop {
         if let Some(res) = lex.next() {
             if let Ok(tok) = res {
-                println!("Starting parsing: {:?}", tok);
+                if IS_DEBUG {
+                    println!("Starting to parse: {:?}", lex.slice());
+                }
                 match tok {
                     Token::Newline | Token::Comment => continue,
                     Token::Plus => program.imports.push(parse_import(&mut lex)?),

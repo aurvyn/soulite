@@ -5,7 +5,7 @@ mod lexer;
 mod parser;
 
 fn main() -> Result<(), String> {
-    let tree = parser::parse("test/expr.soul")?;
+    let tree = parser::parse::<true>("test/expr.soul")?;
     let mut file = File::create("test/expr.rs")
         .map_err(|e| format!("Failed to create output file: {}", e))?;
     file.write_all(tree.to_rust().as_bytes())
