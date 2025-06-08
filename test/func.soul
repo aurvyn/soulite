@@ -1,15 +1,17 @@
 .mySimpleFunc |-> String
-    "this is a function with no parameters and returns a string"
+	"this is a function with no parameters and returns a string"
 
 .greet | String String -> String
 'theirName 'myName =
-    f"Hello {theirName}! My name is {myName}."
+	f"Hello {theirName}! My name is {myName}."
 
 .printGreet | String
 "simple" =
-    cout <| greet("Andy" "John")
+	cout <| greet("Andy" "John")
 "what" =
-    cout <| greet("Beta" "Alpha")
+	cout <| greet("Beta" "Alpha")
+'else =
+	cout << "Unknown input: " <| else
 
 .factorial | Int -> Int
 0 = 1
@@ -25,7 +27,7 @@
 [] = cout <| "Usage: main [-h] <command> <..args>"
 ["fac" 'n] = cout <| factorial(n 0)
 ["-h" "fac"] =
-    cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
+	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
 'args =
-    cout <| f"invalid input `main {args.join(" ")}`"
-    main([])
+	cout <| f"invalid input `main {args.join(" ")}`"
+	main([])

@@ -1,24 +1,24 @@
 @Person: T =
-    String name
-    Int age
-    T[5] items
+	String name
+	Int age
+	T[5] items
 
-    .addItem | T
-    'item = self.items << item
+	.addItem | T
+	'item = self.items << item
 
-    .getItems |-> &T[5]
-        &items
+	.getItems |-> &T[5]
+		&items
 
 #Animal =
-    .growUp | Int -> Int
+	.growUp | Int -> Int
 
 ^Animal @Person =
-    .growUp: 'years =
-        age += years
-        age
+	.growUp: 'years =
+		age += years
+		age
 
 .init | String[]
 'args =
-    ,john = Person("John" 21 ["car keys" "credit card"])
-    john.growUp(3)
-    cout <| john.age
+	,john = Person("John" 21 ["car keys" "credit card"])
+	john.growUp(3)
+	cout <| john.age

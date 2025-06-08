@@ -8,19 +8,19 @@
 ,myMutable = "this is a mutable variable"
 
 .mySimpleFunc |-> String
-    "this is a function with no parameters and returns a string"
+	"this is a function with no parameters and returns a string"
 
 ; this function takes in two Strings and returns a String
 .greet | String String -> String
 'theirName 'myName =
-    f"Hello {theirName}! My name is {myName}."
+	f"Hello {theirName}! My name is {myName}."
 
 ; this function has a parameter but returns nothing
 .printGreet | String
 "simple" =
-    cout <| greet("Andy" "John")
+	cout <| greet("Andy" "John")
 "what" =
-    cout <| greet("Beta" "Alpha")
+	cout <| greet("Beta" "Alpha")
 
 ; scenarios where pattern matching is more useful
 .factorial | Int -> Int
@@ -36,35 +36,35 @@
 
 ; struct declaration
 @Person: T =
-    String name
-    Int age
-    T[5] items
+	String name
+	Int age
+	T[5] items
 
-    .addItem | T
-    'item = self.items << item
+	.addItem | T
+	'item = self.items << item
 
-    .getItems |-> &T[5]
-        &items
+	.getItems |-> &T[5]
+		&items
 
 ; trait declaration
 #Animal =
-    .growUp | Int -> Int
+	.growUp | Int -> Int
 
 ; implement trait for struct
 ^Animal @Person =
-    .growUp: 'years =
-        age += years
-        age
+	.growUp: 'years =
+		age += years
+		age
 
 .init | String[]
 [] = cout <| "Usage: main [-h] <command> <..args>"
 ["fac" 'n] = cout <| factorial(n 0)
 ["people"] =
-    ,john = Person("John" 21 ["car keys" "credit card"])
-    john.growUp(3)
-    cout <| john.age ; should print "24"
+	,john = Person("John" 21 ["car keys" "credit card"])
+	john.growUp(3)
+	cout <| john.age ; should print "24"
 ["-h" "fac"] =
-    cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
+	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
 'args =
-    cout <| f"invalid input `main {args.join(" ")}`"
-    main([])
+	cout <| f"invalid input `main {args.join(" ")}`"
+	main([])
