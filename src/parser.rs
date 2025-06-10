@@ -54,7 +54,7 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
 
 fn parse_import(lex: &mut Lexer<Token>) -> Result<Import, String> {
     if !lex.next().is_identifier() {
-        return Err(format!("Expected identifier after import token `+`, but got `{}`.", lex.slice()));
+        return err(lex, "identifier after import token `+`");
     }
     let mut import = Import {
         filename: lex.slice().to_string(),
@@ -70,7 +70,7 @@ fn parse_import(lex: &mut Lexer<Token>) -> Result<Import, String> {
                     tab = lex.next();
                 }
             }
-            _ => return Err(format!("Expected identifier or new line after colon token `:`, but got `{}`.", lex.slice())),
+            _ => return err(lex, "identifier or new line after colon token `:`"),
         }
     }
     Ok(import)
@@ -78,7 +78,7 @@ fn parse_import(lex: &mut Lexer<Token>) -> Result<Import, String> {
 
 fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
     if !lex.next().is_identifier() {
-        return Err(format!("Expected identifier after function token `.`, but got `{}`.", lex.slice()));
+        return err(lex, "identifier after function token `.`");
     }
     let mut func = Function {
         signature: TypeSignature {
@@ -89,7 +89,7 @@ fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
         equations: vec![],
     };
     if !lex.next().is_pipe() {
-        return Err(format!("Expected `|` after function name, but got `{}`.", lex.slice()));
+        return err(lex, "`|` after function name");
     }
     let mut tok = lex.next();
     while tok.is_type() {
@@ -98,7 +98,7 @@ fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
     }
     if !tok.is_newline() {
         if !tok.is_arrow() {
-            return Err(format!("Expected `->` after argument types, but got `{}`.", lex.slice()));
+            return err(lex, "`->` after argument types");
         }
         while lex.next().is_type() {
             func.signature.return_type.push(lex.slice().to_string());
@@ -126,21 +126,21 @@ fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
             tok = lex.next();
             if !tok.is_var_marker() {
                 if let Some(Ok(tok)) = tok {
-                    func.equations[i].parameters_list.push(parse_literal(tok, lex.slice())?);
+                    func.equations[i].parameters_list.push(parse_literal(lex, tok)?);
                     continue;
                 }
-                return Err(format!("Expected variable marker `'` or `,` for function parameter, but got `{}`.", lex.slice()));
+                return err(lex, "variable marker `'` or `,` for function parameter");
             }
             known_param -= 1;
             if !lex.next().is_identifier() {
-                return Err(format!("Expected identifier for function parameter, but got `{}`.", lex.slice()));
+                return err(lex, "identifier for function parameter");
             }
             func.equations[i].parameters_list.push(Expr::Variable(
                 lex.slice().to_string()
             ));
         }
         if !lex.next().is_assign() {
-            return Err(format!("Expected `=` after function parameters, but got `{}`.", lex.slice()));
+            return err(lex, "`=` after function parameters");
         }
         if !lex.next().is_newline() {
             func.equations[i].body.push(parse_expression(lex)?);
@@ -158,11 +158,11 @@ fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
 
 fn parse_assignment<const MUTABLE: bool>(lex: &mut Lexer<Token>) -> Result<Expr, String> {
     if !lex.next().is_identifier() {
-        return Err(format!("Expected identifier after assignment token, but got `{}`.", lex.slice()));
+        return err(lex, "identifier after assignment token");
     }
     let name = lex.slice().to_string();
     if !lex.next().is_var_assign() {
-        return Err(format!("Expected assignment after variable name, but got `{}`.", lex.slice()));
+        return err(lex, "assignment after variable name");
     }
     let value = parse_expression(lex)?;
     Ok(Expr::Assign {
@@ -183,39 +183,39 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
             Token::Apostrophe => parse_assignment::<false>(lex),
             Token::Comma => parse_assignment::<true>(lex),
             Token::Identifier => parse_identifier(lex),
-            Token::Float => parse_literal(tok, lex.slice()),
-            Token::Integer => parse_literal(tok, lex.slice()),
-            Token::String => parse_literal(tok, lex.slice()),
+            Token::Float => parse_literal(lex, tok),
+            Token::Integer => parse_literal(lex, tok),
+            Token::String => parse_literal(lex, tok),
             Token::LeftParen => {
                 let expr = parse_expression(lex)?;
                 if lex.next() != Some(Ok(Token::RightParen)) {
-                    return Err(format!("Expected closing parenthesis `)`, but got `{}`.", lex.slice()));
+                    return err(lex, "closing parenthesis `)`");
                 }
                 Ok(expr)
             },
             Token::Comment => parse_primary(lex),
-            other => Err(format!("Unexpected token as primary expression: {:?}", other)),
+            _ => err(lex, "primary expression"),
         }
     } else {
-        Err(format!("Expected primary expression, but got `{}`.", lex.slice()))
+        err(lex, "primary expression")
     }
 }
 
-fn parse_literal(tok: Token, slice: &str) -> Result<Expr, String> {
+fn parse_literal(lex: &mut Lexer<Token>, tok: Token) -> Result<Expr, String> {
     match tok {
         Token::Float => {
-            let value = slice.parse::<f64>().unwrap();
+            let value = lex.slice().parse::<f64>().unwrap();
             Ok(Expr::Literal(Literal::Float(value)))
         },
         Token::Integer => {
-            let value = slice.parse::<i64>().unwrap();
+            let value = lex.slice().parse::<i64>().unwrap();
             Ok(Expr::Literal(Literal::Integer(value)))
         },
         Token::String => {
-            let value = slice.trim_matches('"').to_string();
+            let value = lex.slice().trim_matches('"').to_string();
             Ok(Expr::Literal(Literal::String(value)))
         },
-        _ => Err(format!("Expected literal, but got `{}`.", slice)),
+        _ => err(lex, "literal expression"),
     }
 }
 
@@ -251,4 +251,8 @@ fn parse_binary_expression(lex: &mut Lexer<Token>, mut lhs: Expr, precedence: u8
         lhs = Expr::Binary { op, lhs: Box::new(lhs), rhs: Box::new(rhs) };
     }
     Ok(lhs)
+}
+
+fn err<T>(lex: &Lexer<Token>, expect: &str) -> Result<T, String> {
+    Err(format!("Expected {}, but got `{}` at {:?}.", expect, lex.slice(), lex.span()))
 }
