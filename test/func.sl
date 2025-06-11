@@ -1,33 +1,33 @@
-.mySimpleFunc |-> String
+mySimpleFunc |-> String
 	"this is a function with no parameters and returns a string"
 
-.greet | String String -> String
-'theirName 'myName =
-	f"Hello {theirName}! My name is {myName}."
+greet | String String -> String
+theirName myName =
+	"Hello {theirName}! My name is {myName}."
 
-.printGreet | String
+printGreet | String
 "simple" =
 	cout <| greet("Andy" "John")
 "what" =
 	cout <| greet("Beta" "Alpha")
-'else =
+else =
 	cout << "Unknown input: " <| else
 
-.factorial | Int -> Int
+factorial | Int -> Int
 0 = 1
 1 = 1
-'n = n * factorial(n-1)
+n = n * factorial(n-1)
 
-.factorial | Int Int -> Int
+factorial | Int Int -> Int
 0 _ = 1
-1 'total = total
-'n 'total = factorial(n-1 total*n)
+1 total = total
+n total = factorial(n-1 total*n)
 
-.init | [String]
+init | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
-["fac" 'n] = cout <| factorial(n 0)
+["fac" n] = cout <| factorial(n 0)
 ["-h" "fac"] =
 	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
-'args =
+args =
 	cout <| f"invalid input `main {args.join(" ")}`"
-	main([])
+	init([])

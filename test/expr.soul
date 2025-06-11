@@ -1,9 +1,0 @@
-; this is a comment
-
-+std:cout ; imports cout from std
-
-'myInt = 32
-
-,myStr = "this is a string"
-
-; end

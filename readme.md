@@ -1,6 +1,6 @@
 # Soulite
 
-An experimental compiled programming language focused on making the syntax as compact as possible without sacrificing readability. The compiler is `SoulForge`, and the file extension is `.soul`. The following should be the ideal directory hierarchy for a simple project:
+An experimental compiled programming language focused on making the syntax as compact as possible without sacrificing readability. The compiler toolchain is `SoulForge`, and the file extension is `.sl`. The following should be the ideal directory hierarchy for a simple project:
 
 ```
 MyProject
@@ -20,36 +20,36 @@ Anyhow, let's get into the syntax.
 ; this imports `cout` from the standard library
 +std-cout
 
-'myVar = "this is an immutable variable"
+myVar' "this is an immutable variable"
 
-,myMutable = "this is a mutable variable"
+myMutable, "this is a mutable variable"
 
-.mySimpleFunc |-> String
+mySimpleFunc |-> String
     "this is a function with no parameters and returns a string"
 
 ; this function takes in two Strings and returns a String
-.greet | String String -> String
-'theirName 'myName =
-    f"Hello {theirName}! My name is {myName}."
+greet | String String -> String
+theirName myName =
+    "Hello {theirName}! My name is {myName}."
 
 ; this function has a parameter but returns nothing
-.printGreet | String
+printGreet | String
 "simple" =
     cout <| greet("Andy" "John")
 "what" =
     cout <| greet("Beta" "Alpha")
 
 ; scenarios where pattern matching is more useful
-.factorial | Int -> Int
+factorial | Int -> Int
 0 = 1
 1 = 1
-'n = n * factorial(n-1)
+n = n * factorial(n-1)
 
 ; tail-recursive
-.factorial | Int Int -> Int
+factorial | Int Int -> Int
 0 _ = 1
-1 'total = total
-'n 'total = factorial(n-1 total*n)
+1 total = total
+n total = factorial(n-1 total*n)
 ```
 
 A lot of syntax here is influenced by Haskell, so most of it would be self-explanatory if you know that language. However, a few things here are unique:
@@ -73,45 +73,42 @@ Similar to `<<`, except that it acts as a "closing version". This means that thi
 
 ## Structs and Traits
 ```
-; struct declaration
-@Person: T =
-    String name
-    Int age
-    T[5] items
+; struct declaration with generic type `T`
+Person: T
+    name String
+    age Int
+    items T[5]
 
-    .addItem | T
-    'item = self.items << item
+    add_item | T
+    item = self.items << item
 
-    .getItems |-> &T[5]
+    get_items |-> &T[5]
         &items
 
-; trait declaration
-#Animal =
-    .growUp | Int -> Int
-
-; implement trait for struct
-^Animal @Person =
-    .growUp: 'years =
+; trait declaration & implement for struct
+Person => Animal
+    grow_up | Int -> Int
+    years =
         age += years
         age
 ```
 
-This is where it gets quite similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `^Animal @Person` as "implement Animal for Person". From here you can also see some of Haskell-inspired syntax for the method `growUp`. Since the parameter type and return type has already been defined, all we need to do here is to insert a variable name for the parameter.
+This is where it gets similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `Person => Animal` as "implement Animal for Person". Unlike Rust, however, trait declaration is completely implicit.
 
 ## Init Function
 ```
-.init | [String]
+init | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
-["fac" 'n] = cout <| factorial(n 0)
+["fac" n] = cout <| factorial(n 1)
 ["people"] =
-    ,john = Person("John" 21 ["car keys" "credit card"])
+    john, Person("John" 21 ["car keys" "credit card"])
     john.growUp(3)
     cout <| john.age ; should print "24"
 ["-h" "fac"] =
     cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
-'args =
-    cout <| f"invalid input `main {args.join(" ")}`"
-    main([])
+args =
+    cout <| "invalid input `main {args.join(" ")}`"
+    init([])
 ```
 
-An init function acts as the "main" function that you might see in other languages. Here, it should always have `String[]` as a parameter.
+An init function acts as the "main" function that you might see in other languages. Here, it should always have `[String]` as a parameter.
