@@ -142,9 +142,13 @@ fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
         if !lex.next().is_assign() {
             return err(lex, "`=` after function parameters");
         }
-        if !lex.next().is_newline() {
+        if !lex.clone().next().is_newline() {
             func.equations[i].body.push(parse_expression(lex)?);
+            if !lex.next().is_newline() {
+                return err(lex, "newline after function body expression");
+            }
         } else {
+            lex.next();
             while lex.next().is_tab() {
                 func.equations[i].body.push(parse_expression(lex)?);
             }
@@ -242,7 +246,7 @@ fn parse_binary_expression(lex: &mut Lexer<Token>, mut lhs: Expr, precedence: u8
         lex.next();
         let op = lex.slice().to_string();
         let mut rhs = parse_primary(lex)?;
-        if let Some(Ok(next_tok)) = lex.next() {
+        if let Some(Ok(next_tok)) = lex.clone().next() {
             let next_prec = next_tok.get_precedence();
             if prec < next_prec {
                 rhs = parse_binary_expression(lex, rhs, next_prec + 1)?;
