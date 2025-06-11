@@ -242,7 +242,6 @@ pub trait CheckToken {
     fn is_newline(&self) -> bool;
     fn is_tab(&self) -> bool;
     fn is_type(&self) -> bool;
-    fn is_var_assign(&self) -> bool;
 }
 
 impl CheckToken for Option<Result<Token, ()>> {
@@ -272,24 +271,5 @@ impl CheckToken for Option<Result<Token, ()>> {
 
     fn is_type(&self) -> bool {
         self == &Some(Ok(Token::Type))
-    }
-
-    fn is_var_assign(&self) -> bool {
-        match self {
-            Some(Ok(Token::Assign))
-            | Some(Ok(Token::PlusAssign))
-            | Some(Ok(Token::MinusAssign))
-            | Some(Ok(Token::MultiplyAssign))
-            | Some(Ok(Token::DivideAssign))
-            | Some(Ok(Token::ModuloAssign))
-            | Some(Ok(Token::AndAssign))
-            | Some(Ok(Token::OrAssign))
-            | Some(Ok(Token::InverseAssign))
-            | Some(Ok(Token::XorAssign))
-            | Some(Ok(Token::ExponentAssign))
-            | Some(Ok(Token::ShiftLeftAssign))
-            | Some(Ok(Token::PipeLeftAssign)) => true,
-            _ => false,
-        }
     }
 }
