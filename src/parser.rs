@@ -8,6 +8,7 @@ use crate::{
         Function,
         Import,
         Literal,
+        Pattern,
         Program,
         TypeSignature,
     },
@@ -123,21 +124,11 @@ fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
             body: vec![],
         });
         for _ in 0..known_param {
-            tok = lex.next();
-            if !tok.is_var_marker() {
-                if let Some(Ok(tok)) = tok {
-                    func.equations[i].parameters_list.push(parse_literal(lex, tok)?);
-                    continue;
-                }
-                return err(lex, "variable marker `'` or `,` for function parameter");
+            let pattern = parse_parameter(lex)?;
+            if !matches!(pattern, Pattern::Literal(_)) {
+                known_param -= 1;
             }
-            known_param -= 1;
-            if !lex.next().is_identifier() {
-                return err(lex, "identifier for function parameter");
-            }
-            func.equations[i].parameters_list.push(Expr::Variable(
-                lex.slice().to_string()
-            ));
+            func.equations[i].parameters_list.push(pattern);
         }
         if !lex.next().is_assign() {
             return err(lex, "`=` after function parameters");
@@ -187,9 +178,9 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
             Token::Apostrophe => parse_assignment::<false>(lex),
             Token::Comma => parse_assignment::<true>(lex),
             Token::Identifier => parse_identifier(lex),
-            Token::Float => parse_literal(lex, tok),
-            Token::Integer => parse_literal(lex, tok),
-            Token::String => parse_literal(lex, tok),
+            Token::Float => parse_literal(lex, &tok),
+            Token::Integer => parse_literal(lex, &tok),
+            Token::String => parse_literal(lex, &tok),
             Token::LeftParen => {
                 let expr = parse_expression(lex)?;
                 if lex.next() != Some(Ok(Token::RightParen)) {
@@ -205,7 +196,35 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
     }
 }
 
-fn parse_literal(lex: &mut Lexer<Token>, tok: Token) -> Result<Expr, String> {
+fn parse_parameter(lex: &mut Lexer<Token>) -> Result<Pattern, String> {
+    let Some(Ok(tok)) = lex.next() else {
+        return err(lex, "literal function parameter");
+    };
+    match tok {
+        Token::Float => {
+            let value = lex.slice().parse::<f64>().unwrap();
+            Ok(Pattern::Literal(Literal::Float(value)))
+        },
+        Token::Integer => {
+            let value = lex.slice().parse::<i64>().unwrap();
+            Ok(Pattern::Literal(Literal::Integer(value)))
+        },
+        Token::String => {
+            let value = lex.slice().trim_matches('"').to_string();
+            Ok(Pattern::Literal(Literal::String(value)))
+        },
+        Token::Apostrophe | Token::Comma => {
+            if !lex.next().is_identifier() {
+                return err(lex, "identifier");
+            }
+            Ok(Pattern::Variable(lex.slice().to_string()))
+        },
+        Token::Underscore => Ok(Pattern::Wildcard),
+        _ => err(lex, "literal function parameter"),
+    }
+}
+
+fn parse_literal(lex: &mut Lexer<Token>, tok: &Token) -> Result<Expr, String> {
     match tok {
         Token::Float => {
             let value = lex.slice().parse::<f64>().unwrap();
@@ -231,6 +250,7 @@ fn parse_identifier(lex: &mut Lexer<Token>) -> Result<Expr, String> {
         while lex.clone().next() != Some(Ok(Token::RightParen)) {
             args.push(parse_expression(lex)?);
         }
+        lex.next();
         Ok(Expr::Call { callee: name, args })
     } else {
         Ok(Expr::Variable(name))

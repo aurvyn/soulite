@@ -1,3 +1,7 @@
+pub trait ToRust {
+    fn to_rust(&self) -> String;
+}
+
 pub enum Literal {
     Integer(i64),
     Float(f64),
@@ -10,6 +14,22 @@ impl ToString for Literal {
             Literal::Integer(i) => i.to_string(),
             Literal::Float(f) => f.to_string(),
             Literal::String(s) => format!("\"{}\"", s),
+        }
+    }
+}
+
+pub enum Pattern {
+    Literal(Literal),
+    Variable(String),
+    Wildcard,
+}
+
+impl ToRust for Pattern {
+    fn to_rust(&self) -> String {
+        match self {
+            Pattern::Literal(lit) => lit.to_string(),
+            Pattern::Variable(name) => name.clone(),
+            Pattern::Wildcard => "_".to_string(),
         }
     }
 }
@@ -31,10 +51,6 @@ pub enum Expr {
         mutable: bool,
         value: Box<Expr>,
     },
-}
-
-pub trait ToRust {
-    fn to_rust(&self) -> String;
 }
 
 impl ToRust for Expr {
@@ -62,7 +78,7 @@ pub struct TypeSignature {
 }
 
 pub struct Equation {
-    pub parameters_list: Vec<Expr>,
+    pub parameters_list: Vec<Pattern>,
     pub body: Vec<Expr>,
 }
 
@@ -71,9 +87,9 @@ pub struct Function {
     pub equations: Vec<Equation>,
 }
 
-impl Function {
+impl ToRust for Function {
     // only support one equation for now
-    pub fn to_rust(&self) -> String {
+    fn to_rust(&self) -> String {
         if self.equations.is_empty() {
             return String::new();
         }
@@ -98,8 +114,8 @@ pub struct Import {
     pub items: Vec<String>,
 }
 
-impl Import {
-    pub fn to_rust(&self) -> String {
+impl ToRust for Import {
+    fn to_rust(&self) -> String {
         let module = format!("mod {};", self.filename);
         if self.items.is_empty() {
             module
@@ -116,8 +132,8 @@ pub struct Program {
     pub variables: Vec<Expr>,
 }
 
-impl Program {
-    pub fn to_rust(&self) -> String {
+impl ToRust for Program {
+    fn to_rust(&self) -> String {
         let imports = self.imports.iter()
             .map(|i| i.to_rust())
             .collect::<Vec<_>>()

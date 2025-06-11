@@ -144,6 +144,9 @@ pub enum Token {
     #[token("->")]
     Arrow,
 
+    #[token("_")]
+    Underscore,
+
     #[token("+=")]
     PlusAssign,
 
@@ -189,7 +192,7 @@ pub enum Token {
 
 impl Token {
     pub fn get_precedence(&self) -> u8 {
-        match *self {
+        match self {
             Token::Assign
             | Token::PlusAssign
             | Token::MinusAssign
@@ -241,7 +244,6 @@ pub trait CheckToken {
     fn is_tab(&self) -> bool;
     fn is_type(&self) -> bool;
     fn is_var_assign(&self) -> bool;
-    fn is_var_marker(&self) -> bool;
 }
 
 impl CheckToken for Option<Result<Token, ()>> {
@@ -278,7 +280,7 @@ impl CheckToken for Option<Result<Token, ()>> {
     }
 
     fn is_var_assign(&self) -> bool {
-        match *self {
+        match self {
             Some(Ok(Token::Assign))
             | Some(Ok(Token::PlusAssign))
             | Some(Ok(Token::MinusAssign))
@@ -294,10 +296,5 @@ impl CheckToken for Option<Result<Token, ()>> {
             | Some(Ok(Token::PipeLeftAssign)) => true,
             _ => false,
         }
-    }
-
-    fn is_var_marker(&self) -> bool {
-        self == &Some(Ok(Token::Apostrophe))
-        || self == &Some(Ok(Token::Comma))
     }
 }

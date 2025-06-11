@@ -1,5 +1,7 @@
 use std::{fs::File, io::Write};
 
+use crate::ast::ToRust;
+
 mod ast;
 mod lexer;
 mod parser;
