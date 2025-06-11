@@ -17,7 +17,7 @@
 		age += years
 		age
 
-.init | String[]
+.init | [String]
 'args =
 	,john = Person("John" 21 ["car keys" "credit card"])
 	john.growUp(3)

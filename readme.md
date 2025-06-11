@@ -18,7 +18,7 @@ Anyhow, let's get into the syntax.
 ; this is a comment by the way
 
 ; this imports `cout` from the standard library
-$std-cout
++std-cout
 
 'myVar = "this is an immutable variable"
 
@@ -48,7 +48,7 @@ $std-cout
 ; tail-recursive
 .factorial | Int Int -> Int
 0 _ = 1
-1 _ = 1
+1 'total = total
 'n 'total = factorial(n-1 total*n)
 ```
 
@@ -100,7 +100,7 @@ This is where it gets quite similar to Rust. The `T` used here is a generic type
 
 ## Init Function
 ```
-.init | String[]
+.init | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
 ["fac" 'n] = cout <| factorial(n 0)
 ["people"] =
