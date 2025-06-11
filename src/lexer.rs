@@ -240,7 +240,6 @@ pub trait CheckToken {
     fn is_colon(&self) -> bool;
     fn is_identifier(&self) -> bool;
     fn is_newline(&self) -> bool;
-    fn is_pipe(&self) -> bool;
     fn is_tab(&self) -> bool;
     fn is_type(&self) -> bool;
     fn is_var_assign(&self) -> bool;
@@ -265,10 +264,6 @@ impl CheckToken for Option<Result<Token, ()>> {
 
     fn is_newline(&self) -> bool {
         self == &Some(Ok(Token::Newline))
-    }
-
-    fn is_pipe(&self) -> bool {
-        self == &Some(Ok(Token::Pipe))
     }
 
     fn is_tab(&self) -> bool {

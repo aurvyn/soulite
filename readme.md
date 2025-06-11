@@ -25,19 +25,19 @@ myVar' "this is an immutable variable"
 myMutable, "this is a mutable variable"
 
 mySimpleFunc |-> String
-    "this is a function with no parameters and returns a string"
+	"this is a function with no parameters and returns a string"
 
 ; this function takes in two Strings and returns a String
 greet | String String -> String
 theirName myName =
-    "Hello {theirName}! My name is {myName}."
+	"Hello {theirName}! My name is {myName}."
 
 ; this function has a parameter but returns nothing
 printGreet | String
 "simple" =
-    cout <| greet("Andy" "John")
+	cout <| greet("Andy" "John")
 "what" =
-    cout <| greet("Beta" "Alpha")
+	cout <| greet("Beta" "Alpha")
 
 ; scenarios where pattern matching is more useful
 factorial | Int -> Int
@@ -75,22 +75,22 @@ Similar to `<<`, except that it acts as a "closing version". This means that thi
 ```
 ; struct declaration with generic type `T`
 Person: T
-    name String
-    age Int
-    items T[5]
+	name String
+	age Int
+	items T[5]
 
-    add_item | T
-    item = self.items << item
+	add_item | T
+	item = self.items << item
 
-    get_items |-> &T[5]
-        &items
+	get_items |-> &T[5]
+		&items
 
 ; trait declaration & implement for struct
 Person => Animal
-    grow_up | Int -> Int
-    years =
-        age += years
-        age
+	grow_up | Int -> Int
+	years =
+		age += years
+		age
 ```
 
 This is where it gets similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `Person => Animal` as "implement Animal for Person". Unlike Rust, however, trait declaration is completely implicit.
@@ -101,14 +101,14 @@ init | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
 ["fac" n] = cout <| factorial(n 1)
 ["people"] =
-    john, Person("John" 21 ["car keys" "credit card"])
-    john.growUp(3)
-    cout <| john.age ; should print "24"
+	john, Person("John" 21 ["car keys" "credit card"])
+	john.growUp(3)
+	cout <| john.age ; should print "24"
 ["-h" "fac"] =
-    cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
+	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
 args =
-    cout <| "invalid input `main {args.join(" ")}`"
-    init([])
+	cout <| "invalid input `main {args.join(" ")}`"
+	init([])
 ```
 
 An init function acts as the "main" function that you might see in other languages. Here, it should always have `[String]` as a parameter.

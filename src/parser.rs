@@ -28,27 +28,34 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
         variables: vec![],
     };
     loop {
-        if let Some(res) = lex.next() {
-            if let Ok(tok) = res {
-                if IS_DEBUG {
-                    println!("Starting to parse: {:?}", lex.slice());
-                }
-                match tok {
-                    Token::Newline | Token::Comment => continue,
-                    Token::Plus => program.imports.push(parse_import(&mut lex)?),
-                    Token::Dot => program.functions.push(parse_function(&mut lex)?),
-                    Token::Apostrophe => program.variables.push(parse_assignment::<false>(&mut lex)?),
-                    Token::Comma => program.variables.push(parse_assignment::<true>(&mut lex)?),
-                    _ => return Err(format!("Unexpected token: `{}`.", lex.slice())),
-                }
-            } else {
-                return Err(format!("Failed to parse top-level token: `{}`.", lex.slice()));
-            }
-        } else {
+        let Some(res) = lex.next() else {
             if IS_DEBUG {
                 println!("Finished parsing {}.", file_name);
             }
             return Ok(program);
+        };
+        let Ok(tok) = res else {
+            return err(&lex, "top-level token");
+        };
+        if IS_DEBUG {
+            println!("Starting to parse: {:?}", lex.slice());
+        }
+        match tok {
+            Token::Newline | Token::Comment => continue,
+            Token::Plus => program.imports.push(parse_import(&mut lex)?),
+            Token::Identifier => {
+                let name = lex.slice().to_string();
+                let Some(Ok(tok)) = lex.next() else {
+                    return err(&lex, "token after identifier");
+                };
+                match tok {
+                    Token::Pipe => program.functions.push(parse_function(&mut lex, name)?),
+                    Token::Apostrophe => program.variables.push(parse_assignment::<false>(&mut lex, name)?),
+                    Token::Comma => program.variables.push(parse_assignment::<true>(&mut lex, name)?),
+                    _ => return err(&lex, "variable or function marker"),
+                }
+            }
+            _ => return err(&lex, "import or declaration"),
         }
     }
 }
@@ -77,21 +84,15 @@ fn parse_import(lex: &mut Lexer<Token>) -> Result<Import, String> {
     Ok(import)
 }
 
-fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
-    if !lex.next().is_identifier() {
-        return err(lex, "identifier after function token `.`");
-    }
+fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, String> {
     let mut func = Function {
         signature: TypeSignature {
-            name: lex.slice().to_string(),
+            name,
             arg_types: vec![],
             return_type: vec![],
         },
         equations: vec![],
     };
-    if !lex.next().is_pipe() {
-        return err(lex, "`|` after function name");
-    }
     let mut tok = lex.next();
     while tok.is_type() {
         func.signature.arg_types.push(lex.slice().to_string());
@@ -139,8 +140,15 @@ fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
                 return err(lex, "newline after function body expression");
             }
         } else {
-            lex.next();
-            while lex.next().is_tab() {
+            loop {
+                if !lex.clone().next().is_newline() {
+                    break;
+                }
+                lex.next();
+                if !lex.clone().next().is_tab() {
+                    break;
+                }
+                lex.next();
                 func.equations[i].body.push(parse_expression(lex)?);
             }
         }
@@ -151,19 +159,11 @@ fn parse_function(lex: &mut Lexer<Token>) -> Result<Function, String> {
     Ok(func)
 }
 
-fn parse_assignment<const MUTABLE: bool>(lex: &mut Lexer<Token>) -> Result<Expr, String> {
-    if !lex.next().is_identifier() {
-        return err(lex, "identifier after assignment token");
-    }
-    let name = lex.slice().to_string();
-    if !lex.next().is_var_assign() {
-        return err(lex, "assignment after variable name");
-    }
-    let value = parse_expression(lex)?;
+fn parse_assignment<const MUTABLE: bool>(lex: &mut Lexer<Token>, name: String) -> Result<Expr, String> {
     Ok(Expr::Assign {
         name,
         mutable: MUTABLE,
-        value: Box::new(value),
+        value: Box::new(parse_expression(lex)?),
     })
 }
 
@@ -175,9 +175,23 @@ fn parse_expression(lex: &mut Lexer<Token>) -> Result<Expr, String> {
 fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
     if let Some(Ok(tok)) = lex.next() {
         match tok {
-            Token::Apostrophe => parse_assignment::<false>(lex),
-            Token::Comma => parse_assignment::<true>(lex),
-            Token::Identifier => parse_identifier(lex),
+            Token::Identifier => {
+                let name = lex.slice().to_string();
+                let Some(Ok(tok)) = lex.clone().next() else {
+                    return err(&lex, "token after identifier");
+                };
+                match tok {
+                    Token::Apostrophe => {
+                        lex.next();
+                        parse_assignment::<false>(lex, name)
+                    }
+                    Token::Comma => {
+                        lex.next();
+                        parse_assignment::<true>(lex, name)
+                    }
+                    _ => parse_identifier(lex, name),
+                }
+            }
             Token::Float => parse_literal(lex, &tok),
             Token::Integer => parse_literal(lex, &tok),
             Token::String => parse_literal(lex, &tok),
@@ -213,10 +227,7 @@ fn parse_parameter(lex: &mut Lexer<Token>) -> Result<Pattern, String> {
             let value = lex.slice().trim_matches('"').to_string();
             Ok(Pattern::Literal(Literal::String(value)))
         },
-        Token::Apostrophe | Token::Comma => {
-            if !lex.next().is_identifier() {
-                return err(lex, "identifier");
-            }
+        Token::Identifier => {
             Ok(Pattern::Variable(lex.slice().to_string()))
         },
         Token::Underscore => Ok(Pattern::Wildcard),
@@ -242,8 +253,7 @@ fn parse_literal(lex: &mut Lexer<Token>, tok: &Token) -> Result<Expr, String> {
     }
 }
 
-fn parse_identifier(lex: &mut Lexer<Token>) -> Result<Expr, String> {
-    let name = lex.slice().to_string();
+fn parse_identifier(lex: &mut Lexer<Token>, name: String) -> Result<Expr, String> {
     if lex.clone().next() == Some(Ok(Token::LeftParen)) {
         lex.next();
         let mut args = vec![];

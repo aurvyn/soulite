@@ -36,22 +36,22 @@ n total = factorial(n-1 total*n)
 
 ; struct declaration with generic type `T`
 Person: T
-    name String
-    age Int
-    items T[5]
+	name String
+	age Int
+	items T[5]
 
-    add_item | T
-    item = self.items << item
+	add_item | T
+	item = self.items << item
 
-    get_items |-> &T[5]
-        &items
+	get_items |-> &T[5]
+		&items
 
 ; trait declaration & implement for struct
 Person => Animal
-    grow_up | Int -> Int
-    years =
-        age += years
-        age
+	grow_up | Int -> Int
+	years =
+		age += years
+		age
 
 init | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
