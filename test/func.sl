@@ -29,5 +29,6 @@ init | [String]
 ["-h" "fac"] =
 	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
 args =
-	cout <| f"invalid input `main {args.join(" ")}`"
+	args_str' args.join(" ")
+	cout <| "invalid argument(s) `{args_str}`"
 	init([])

@@ -10,6 +10,7 @@ use crate::{
         Literal,
         Pattern,
         Program,
+        Type,
         TypeSignature,
     },
     lexer::{
@@ -89,13 +90,13 @@ fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, Stri
         signature: TypeSignature {
             name,
             arg_types: vec![],
-            return_type: vec![],
+            return_types: vec![],
         },
         equations: vec![],
     };
     let mut tok = lex.next();
     while tok.is_type() {
-        func.signature.arg_types.push(lex.slice().to_string());
+        func.signature.arg_types.push(parse_type(lex)?);
         tok = lex.next();
     }
     if !tok.is_newline() {
@@ -103,7 +104,7 @@ fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, Stri
             return err(lex, "`->` after argument types");
         }
         while lex.next().is_type() {
-            func.signature.return_type.push(lex.slice().to_string());
+            func.signature.return_types.push(parse_type(lex)?);
         }
     }
     if func.signature.arg_types.is_empty() {
@@ -126,7 +127,7 @@ fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, Stri
         });
         for _ in 0..known_param {
             let pattern = parse_parameter(lex)?;
-            if !matches!(pattern, Pattern::Literal(_)) {
+            if matches!(pattern, Pattern::Variable(_) | Pattern::Wildcard) {
                 known_param -= 1;
             }
             func.equations[i].parameters_list.push(pattern);
@@ -202,11 +203,38 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
                 }
                 Ok(expr)
             },
+            Token::LeftBracket => {
+                let mut elements = vec![];
+                while lex.clone().next() != Some(Ok(Token::RightBracket)) {
+                    elements.push(parse_expression(lex)?);
+                }
+                lex.next();
+                Ok(Expr::List(elements))
+            }
             Token::Comment => parse_primary(lex),
             _ => err(lex, "primary expression"),
         }
     } else {
         err(lex, "primary expression")
+    }
+}
+
+fn parse_type(lex: &mut Lexer<Token>) -> Result<Type, String> {
+    match lex.slice() {
+        "Int" => Ok(Type::Integer),
+        "Float" => Ok(Type::Float),
+        "String" => Ok(Type::String),
+        "[" => {
+            if !lex.next().is_type() {
+                return err(lex, "type after `[`");
+            }
+            let inner_type = parse_type(lex)?;
+            if lex.next() != Some(Ok(Token::RightBracket)) {
+                return err(lex, "closing bracket `]`");
+            }
+            Ok(Type::List(Box::new(inner_type)))
+        },
+        _ => err(lex, "type"),
     }
 }
 
@@ -231,6 +259,14 @@ fn parse_parameter(lex: &mut Lexer<Token>) -> Result<Pattern, String> {
             Ok(Pattern::Variable(lex.slice().to_string()))
         },
         Token::Underscore => Ok(Pattern::Wildcard),
+        Token::LeftBracket => {
+            let mut elements = vec![];
+            while lex.clone().next() != Some(Ok(Token::RightBracket)) {
+                elements.push(parse_parameter(lex)?);
+            }
+            lex.next();
+            Ok(Pattern::List(elements))
+        },
         _ => err(lex, "literal function parameter"),
     }
 }

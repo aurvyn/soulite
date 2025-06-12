@@ -38,12 +38,12 @@ n total = factorial(n-1 total*n)
 Person: T
 	name String
 	age Int
-	items T[5]
+	items T[2]
 
 	add_item | T
 	item = self.items << item
 
-	get_items |-> &T[5]
+	get_items |-> &T[2]
 		&items
 
 ; trait declaration & implement for struct
@@ -57,7 +57,7 @@ init | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
 ["fac" n] = cout <| factorial(n 1)
 ["people"] =
-	john, Person("John" 21 ["car keys" "credit card"])
+	john, Person("John" 21 [|"car keys" "credit card"|])
 	john.growUp(3)
 	cout <| john.age ; should print "24"
 ["-h" "fac"] =

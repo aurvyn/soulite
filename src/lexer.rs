@@ -111,6 +111,12 @@ pub enum Token {
     #[token("]")]
     RightBracket,
 
+    #[token("[|")]
+    LeftArray,
+
+    #[token("|]")]
+    RightArray,
+
     #[token(",")]
     Comma,
 
@@ -271,5 +277,6 @@ impl CheckToken for Option<Result<Token, ()>> {
 
     fn is_type(&self) -> bool {
         self == &Some(Ok(Token::Type))
+        || self == &Some(Ok(Token::LeftBracket))
     }
 }

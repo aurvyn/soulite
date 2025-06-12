@@ -21,6 +21,7 @@ impl ToString for Literal {
 pub enum Pattern {
     Literal(Literal),
     Variable(String),
+    List(Vec<Pattern>),
     Wildcard,
 }
 
@@ -29,12 +30,20 @@ impl ToRust for Pattern {
         match self {
             Pattern::Literal(lit) => lit.to_string(),
             Pattern::Variable(name) => name.clone(),
+            Pattern::List(patterns) => format!(
+                "[{}]",
+                patterns.iter()
+                    .map(|p| p.to_rust())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
             Pattern::Wildcard => "_".to_string(),
         }
     }
 }
 
 pub enum Expr {
+    List(Vec<Expr>),
     Literal(Literal),
     Variable(String),
     Binary {
@@ -56,6 +65,13 @@ pub enum Expr {
 impl ToRust for Expr {
     fn to_rust(&self) -> String {
         match self {
+            Expr::List(items) => format!(
+                "vec![{}]",
+                items.iter()
+                    .map(|item| item.to_rust())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
             Expr::Literal(lit) => lit.to_string(),
             Expr::Variable(name) => name.clone(),
             Expr::Binary { op, lhs, rhs } =>
@@ -71,10 +87,28 @@ impl ToRust for Expr {
     }
 }
 
+pub enum Type {
+    Integer,
+    Float,
+    String,
+    List(Box<Type>),
+}
+
+impl ToRust for Type {
+    fn to_rust(&self) -> String {
+        match self {
+            Type::Integer => "i64".to_string(),
+            Type::Float => "f64".to_string(),
+            Type::String => "String".to_string(),
+            Type::List(inner) => format!("Vec<{}>", inner.to_rust()),
+        }
+    }
+}
+
 pub struct TypeSignature {
     pub name: String,
-    pub arg_types: Vec<String>,
-    pub return_type: Vec<String>,
+    pub arg_types: Vec<Type>,
+    pub return_types: Vec<Type>,
 }
 
 pub struct Equation {
@@ -97,10 +131,18 @@ impl ToRust for Function {
         let signature = &self.signature;
         let param = signature.arg_types.iter()
             .zip(equation.parameters_list.iter())
-            .map(|(t, param)| format!("{}: {}", param.to_rust(), t))
+            .map(|(t, param)| format!("{}: {}", param.to_rust(), t.to_rust()))
             .collect::<Vec<_>>()
             .join(", ");
-        let head = format!("fn {}({}) -> ({})", signature.name, param, signature.return_type.join(", "));
+        let head = format!(
+            "fn {}({}) -> ({})",
+            signature.name,
+            param,
+            signature.return_types.iter()
+                .map(|t| t.to_rust())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
         let body = equation.body.iter()
             .map(|expr| expr.to_rust())
             .collect::<Vec<_>>()
