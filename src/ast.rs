@@ -95,6 +95,7 @@ impl ToRust for Expr {
             Expr::Variable(name) => name.to_rust(),
             Expr::Binary { op, lhs, rhs } => match op.as_str() {
                 "<<" | "<|" => {
+                    let write_func = if op == "<<" { "" } else { "ln" };
                     let cout = lhs.to_rust();
                     if let Expr::Binary {
                         lhs: inner_lhs,
@@ -108,13 +109,14 @@ impl ToRust for Expr {
                             rhs: inner_rhs.clone(),
                         };
                         format!(
-                            "write!({}, {}).unwrap();\n\t{}",
+                            "write{}!({}, {}).unwrap();\n\t{}",
+                            write_func,
                             cout,
                             inner_lhs.to_rust(),
                             rhs.to_rust()
                         )
                     } else {
-                        format!("write!({}, {}).unwrap()", cout, rhs.to_rust())
+                        format!("write{}!({}, {}).unwrap()", write_func, cout, rhs.to_rust())
                     }
                 }
                 _ => format!("{} {} {}", lhs.to_rust(), op, rhs.to_rust()),
