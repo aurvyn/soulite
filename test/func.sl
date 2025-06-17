@@ -1,3 +1,5 @@
++std:cout
+
 mySimpleFunc |-> String
 	"this is a function with no parameters and returns a string"
 
@@ -23,7 +25,7 @@ factorial | Int Int -> Int
 1 total = total
 n total = factorial(n-1 total*n)
 
-init | [String]
+main | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
 ["fac" n] = cout <| factorial(n 0)
 ["-h" "fac"] =
@@ -31,4 +33,4 @@ init | [String]
 args =
 	args_str' args.join(" ")
 	cout <| "invalid argument(s) `{args_str}`"
-	init([])
+	main([])

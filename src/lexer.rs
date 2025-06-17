@@ -111,11 +111,11 @@ pub enum Token {
     #[token("]")]
     RightBracket,
 
-    #[token("[|")]
-    LeftArray,
+    #[token("[<")]
+    LeftList,
 
-    #[token("|]")]
-    RightArray,
+    #[token(">]")]
+    RightList,
 
     #[token(",")]
     Comma,
@@ -213,8 +213,7 @@ impl Token {
             | Token::ShiftLeftAssign
             | Token::PipeLeftAssign => 1,
             Token::Range => 2,
-            Token::And
-            | Token::Or => 3,
+            Token::And | Token::Or => 3,
             Token::Pipe => 4,
             Token::Caret => 5,
             Token::Amp => 6,
@@ -224,15 +223,9 @@ impl Token {
             | Token::GreaterThanOrEqual
             | Token::Equal
             | Token::NotEqual => 7,
-            Token::ShiftLeft
-            | Token::ShiftRight
-            | Token::PipeLeft
-            | Token::PipeRight => 8,
-            Token::Plus
-            | Token::Minus => 9,
-            Token::Multiply
-            | Token::Divide
-            | Token::Modulo => 10,
+            Token::ShiftLeft | Token::ShiftRight | Token::PipeLeft | Token::PipeRight => 8,
+            Token::Plus | Token::Minus => 9,
+            Token::Multiply | Token::Divide | Token::Modulo => 10,
             Token::Exponent => 11,
             Token::Dot => 12,
             _ => 0,
@@ -276,7 +269,6 @@ impl CheckToken for Option<Result<Token, ()>> {
     }
 
     fn is_type(&self) -> bool {
-        self == &Some(Ok(Token::Type))
-        || self == &Some(Ok(Token::LeftBracket))
+        self == &Some(Ok(Token::Type)) || self == &Some(Ok(Token::LeftBracket))
     }
 }

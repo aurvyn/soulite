@@ -2,18 +2,34 @@ pub trait ToRust {
     fn to_rust(&self) -> String;
 }
 
+impl ToRust for String {
+    fn to_rust(&self) -> String {
+        match self.as_str() {
+            "abstract" | "as" | "async" | "await" | "become" | "box" | "break" | "const"
+            | "continue" | "crate" | "do" | "dyn" | "else" | "enum" | "extern" | "false"
+            | "final" | "fn" | "for" | "gen" | "if" | "impl" | "in" | "let" | "loop" | "macro"
+            | "match" | "mod" | "move" | "mut" | "override" | "priv" | "pub" | "ref" | "return"
+            | "self" | "Self" | "static" | "struct" | "super" | "trait" | "true" | "try"
+            | "type" | "typeof" | "unsafe" | "unsized" | "use" | "virtual" | "where" | "while"
+            | "yield" => format!("_{}", self),
+            _ => self.to_owned(),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub enum Literal {
     Integer(i64),
     Float(f64),
     String(String),
 }
 
-impl ToString for Literal {
-    fn to_string(&self) -> String {
+impl ToRust for Literal {
+    fn to_rust(&self) -> String {
         match self {
             Literal::Integer(i) => i.to_string(),
             Literal::Float(f) => f.to_string(),
-            Literal::String(s) => format!("\"{}\"", s),
+            Literal::String(s) => format!("format!(\"{}\")", s),
         }
     }
 }
@@ -28,11 +44,12 @@ pub enum Pattern {
 impl ToRust for Pattern {
     fn to_rust(&self) -> String {
         match self {
-            Pattern::Literal(lit) => lit.to_string(),
-            Pattern::Variable(name) => name.clone(),
+            Pattern::Literal(lit) => lit.to_rust(),
+            Pattern::Variable(name) => name.to_rust(),
             Pattern::List(patterns) => format!(
                 "[{}]",
-                patterns.iter()
+                patterns
+                    .iter()
                     .map(|p| p.to_rust())
                     .collect::<Vec<_>>()
                     .join(", ")
@@ -42,6 +59,7 @@ impl ToRust for Pattern {
     }
 }
 
+#[derive(Clone)]
 pub enum Expr {
     List(Vec<Expr>),
     Literal(Literal),
@@ -67,22 +85,58 @@ impl ToRust for Expr {
         match self {
             Expr::List(items) => format!(
                 "vec![{}]",
-                items.iter()
+                items
+                    .iter()
                     .map(|item| item.to_rust())
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            Expr::Literal(lit) => lit.to_string(),
-            Expr::Variable(name) => name.clone(),
-            Expr::Binary { op, lhs, rhs } =>
-                format!("{} {} {}", lhs.to_rust(), op, rhs.to_rust()),
-            Expr::Call { callee, args } =>
-                format!("{}({})", callee, args.iter()
+            Expr::Literal(lit) => lit.to_rust(),
+            Expr::Variable(name) => name.to_rust(),
+            Expr::Binary { op, lhs, rhs } => match op.as_str() {
+                "<<" | "<|" => {
+                    let cout = lhs.to_rust();
+                    if let Expr::Binary {
+                        lhs: inner_lhs,
+                        rhs: inner_rhs,
+                        op,
+                    } = &**rhs
+                    {
+                        let rhs = Expr::Binary {
+                            lhs: lhs.clone(),
+                            op: op.clone(),
+                            rhs: inner_rhs.clone(),
+                        };
+                        format!(
+                            "write!({}, {}).unwrap();\n\t{}",
+                            cout,
+                            inner_lhs.to_rust(),
+                            rhs.to_rust()
+                        )
+                    } else {
+                        format!("write!({}, {}).unwrap()", cout, rhs.to_rust())
+                    }
+                }
+                _ => format!("{} {} {}", lhs.to_rust(), op, rhs.to_rust()),
+            },
+            Expr::Call { callee, args } => format!(
+                "{}({})",
+                callee,
+                args.iter()
                     .map(|arg| arg.to_rust())
                     .collect::<Vec<_>>()
-                    .join(", ")),
-            Expr::Assign { name, mutable, value } =>
-                format!("let {}{} = {};", if *mutable { "mut " } else { "" }, name, value.to_rust()),
+                    .join(", ")
+            ),
+            Expr::Assign {
+                name,
+                mutable,
+                value,
+            } => format!(
+                "let {}{} = {}",
+                if *mutable { "mut " } else { "" },
+                name,
+                value.to_rust()
+            ),
         }
     }
 }
@@ -127,9 +181,11 @@ impl ToRust for Function {
         if self.equations.is_empty() {
             return String::new();
         }
-        let equation = &self.equations[0];
+        let equation = &self.equations.last().unwrap();
         let signature = &self.signature;
-        let param = signature.arg_types.iter()
+        let param = signature
+            .arg_types
+            .iter()
             .zip(equation.parameters_list.iter())
             .map(|(t, param)| format!("{}: {}", param.to_rust(), t.to_rust()))
             .collect::<Vec<_>>()
@@ -138,16 +194,20 @@ impl ToRust for Function {
             "fn {}({}) -> ({})",
             signature.name,
             param,
-            signature.return_types.iter()
+            signature
+                .return_types
+                .iter()
                 .map(|t| t.to_rust())
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        let body = equation.body.iter()
+        let body = equation
+            .body
+            .iter()
             .map(|expr| expr.to_rust())
             .collect::<Vec<_>>()
-            .join("\n    ");
-        format!("{} {{\n    {}\n}}", head, body)
+            .join(";\n\t");
+        format!("{} {{\n\t{}\n}}", head, body)
     }
 }
 
@@ -176,18 +236,24 @@ pub struct Program {
 
 impl ToRust for Program {
     fn to_rust(&self) -> String {
-        let imports = self.imports.iter()
+        let imports = self
+            .imports
+            .iter()
             .map(|i| i.to_rust())
             .collect::<Vec<_>>()
             .join("\n");
-        let functions = self.functions.iter()
+        let functions = self
+            .functions
+            .iter()
             .map(|f| f.to_rust())
             .collect::<Vec<_>>()
-            .join("\n\n\t");
-        let variables = self.variables.iter()
+            .join("\n\n");
+        let variables = self
+            .variables
+            .iter()
             .map(|v| v.to_rust())
             .collect::<Vec<_>>()
-            .join("\n\t");
-        format!("{}\n\nfn main() {{\n\t{}\n\n\t{}\n}}", imports, variables, functions)
+            .join(";\n");
+        format!("{}\n\n{}\n\n{}\n", imports, variables, functions)
     }
 }

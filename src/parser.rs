@@ -1,23 +1,10 @@
 use std::vec;
 
-use logos::{Lexer, Logos};
 use crate::{
-    ast::{
-        Equation,
-        Expr,
-        Function,
-        Import,
-        Literal,
-        Pattern,
-        Program,
-        Type,
-        TypeSignature,
-    },
-    lexer::{
-        CheckToken,
-        Token
-    }
+    ast::{Equation, Expr, Function, Import, Literal, Pattern, Program, Type, TypeSignature},
+    lexer::{CheckToken, Token},
 };
+use logos::{Lexer, Logos};
 
 pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
     let soulite_source = std::fs::read_to_string(file_name)
@@ -51,8 +38,12 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                 };
                 match tok {
                     Token::Pipe => program.functions.push(parse_function(&mut lex, name)?),
-                    Token::Apostrophe => program.variables.push(parse_assignment::<false>(&mut lex, name)?),
-                    Token::Comma => program.variables.push(parse_assignment::<true>(&mut lex, name)?),
+                    Token::Apostrophe => program
+                        .variables
+                        .push(parse_assignment::<false>(&mut lex, name)?),
+                    Token::Comma => program
+                        .variables
+                        .push(parse_assignment::<true>(&mut lex, name)?),
                     _ => return err(&lex, "variable or function marker"),
                 }
             }
@@ -160,7 +151,10 @@ fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, Stri
     Ok(func)
 }
 
-fn parse_assignment<const MUTABLE: bool>(lex: &mut Lexer<Token>, name: String) -> Result<Expr, String> {
+fn parse_assignment<const MUTABLE: bool>(
+    lex: &mut Lexer<Token>,
+    name: String,
+) -> Result<Expr, String> {
     Ok(Expr::Assign {
         name,
         mutable: MUTABLE,
@@ -202,7 +196,7 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
                     return err(lex, "closing parenthesis `)`");
                 }
                 Ok(expr)
-            },
+            }
             Token::LeftBracket => {
                 let mut elements = vec![];
                 while lex.clone().next() != Some(Ok(Token::RightBracket)) {
@@ -233,7 +227,7 @@ fn parse_type(lex: &mut Lexer<Token>) -> Result<Type, String> {
                 return err(lex, "closing bracket `]`");
             }
             Ok(Type::List(Box::new(inner_type)))
-        },
+        }
         _ => err(lex, "type"),
     }
 }
@@ -246,18 +240,16 @@ fn parse_parameter(lex: &mut Lexer<Token>) -> Result<Pattern, String> {
         Token::Float => {
             let value = lex.slice().parse::<f64>().unwrap();
             Ok(Pattern::Literal(Literal::Float(value)))
-        },
+        }
         Token::Integer => {
             let value = lex.slice().parse::<i64>().unwrap();
             Ok(Pattern::Literal(Literal::Integer(value)))
-        },
+        }
         Token::String => {
             let value = lex.slice().trim_matches('"').to_string();
             Ok(Pattern::Literal(Literal::String(value)))
-        },
-        Token::Identifier => {
-            Ok(Pattern::Variable(lex.slice().to_string()))
-        },
+        }
+        Token::Identifier => Ok(Pattern::Variable(lex.slice().to_string())),
         Token::Underscore => Ok(Pattern::Wildcard),
         Token::LeftBracket => {
             let mut elements = vec![];
@@ -266,7 +258,7 @@ fn parse_parameter(lex: &mut Lexer<Token>) -> Result<Pattern, String> {
             }
             lex.next();
             Ok(Pattern::List(elements))
-        },
+        }
         _ => err(lex, "literal function parameter"),
     }
 }
@@ -276,15 +268,15 @@ fn parse_literal(lex: &mut Lexer<Token>, tok: &Token) -> Result<Expr, String> {
         Token::Float => {
             let value = lex.slice().parse::<f64>().unwrap();
             Ok(Expr::Literal(Literal::Float(value)))
-        },
+        }
         Token::Integer => {
             let value = lex.slice().parse::<i64>().unwrap();
             Ok(Expr::Literal(Literal::Integer(value)))
-        },
+        }
         Token::String => {
             let value = lex.slice().trim_matches('"').to_string();
             Ok(Expr::Literal(Literal::String(value)))
-        },
+        }
         _ => err(lex, "literal expression"),
     }
 }
@@ -303,7 +295,11 @@ fn parse_identifier(lex: &mut Lexer<Token>, name: String) -> Result<Expr, String
     }
 }
 
-fn parse_binary_expression(lex: &mut Lexer<Token>, mut lhs: Expr, precedence: u8) -> Result<Expr, String> {
+fn parse_binary_expression(
+    lex: &mut Lexer<Token>,
+    mut lhs: Expr,
+    precedence: u8,
+) -> Result<Expr, String> {
     while let Some(Ok(tok)) = lex.clone().next() {
         let prec = tok.get_precedence();
         if prec < precedence {
@@ -314,15 +310,29 @@ fn parse_binary_expression(lex: &mut Lexer<Token>, mut lhs: Expr, precedence: u8
         let mut rhs = parse_primary(lex)?;
         if let Some(Ok(next_tok)) = lex.clone().next() {
             let next_prec = next_tok.get_precedence();
-            if prec < next_prec {
-                rhs = parse_binary_expression(lex, rhs, next_prec + 1)?;
+            if prec <= next_prec {
+                let is_left_associative = if !matches!(op.as_str(), "<<" | "<|" | "**") {
+                    1
+                } else {
+                    0
+                };
+                rhs = parse_binary_expression(lex, rhs, next_prec + is_left_associative)?;
             }
         }
-        lhs = Expr::Binary { op, lhs: Box::new(lhs), rhs: Box::new(rhs) };
+        lhs = Expr::Binary {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        };
     }
     Ok(lhs)
 }
 
 fn err<T>(lex: &Lexer<Token>, expect: &str) -> Result<T, String> {
-    Err(format!("Expected {}, but got `{}` at {:?}.", expect, lex.slice(), lex.span()))
+    Err(format!(
+        "Expected {}, but got `{}` at {:?}.",
+        expect,
+        lex.slice(),
+        lex.span()
+    ))
 }

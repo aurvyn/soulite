@@ -53,15 +53,15 @@ Person => Animal
 		age += years
 		age
 
-init | [String]
+main | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
 ["fac" n] = cout <| factorial(n 1)
 ["people"] =
-	john, Person("John" 21 [|"car keys" "credit card"|])
+	john, Person("John" 21 ["car keys" "credit card"])
 	john.growUp(3)
 	cout <| john.age ; should print "24"
 ["-h" "fac"] =
 	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
 args =
 	cout <| "invalid input `main {args.join(" ")}`"
-	init([])
+	main([])
