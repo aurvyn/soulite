@@ -32,7 +32,7 @@ n = n * factorial(n-1)
 factorial_tail | Int Int -> Int
 0 _ = 1
 1 total = total
-n total = factorial(n-1 total*n)
+n total = factorial_tail(n-1 total*n)
 
 ; struct declaration with generic type `T`
 Person: T
