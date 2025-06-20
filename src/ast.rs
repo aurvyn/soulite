@@ -124,8 +124,9 @@ impl ToRust for Expr {
                 _ => format!("{} {} {}", lhs.to_rust(), op, rhs.to_rust()),
             },
             Expr::Call { callee, args } => format!(
-                "{}({})",
+                "{}({}{})",
                 if callee == "main" { "start" } else { &callee },
+                if callee == "join" { "&" } else { "" },
                 args.iter()
                     .map(|arg| arg.to_rust())
                     .collect::<Vec<_>>()
