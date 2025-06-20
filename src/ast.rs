@@ -125,7 +125,7 @@ impl ToRust for Expr {
             },
             Expr::Call { callee, args } => format!(
                 "{}({})",
-                callee,
+                if callee == "main" { "start" } else { &callee },
                 args.iter()
                     .map(|arg| arg.to_rust())
                     .collect::<Vec<_>>()
@@ -187,6 +187,11 @@ impl ToRust for Function {
         }
         let equation = &self.equations.last().unwrap();
         let signature = &self.signature;
+        let func_name = if signature.name == "main" {
+            "start"
+        } else {
+            &signature.name
+        };
         let param = signature
             .arg_types
             .iter()
@@ -196,7 +201,7 @@ impl ToRust for Function {
             .join(", ");
         let head = format!(
             "fn {}({}) -> ({})",
-            signature.name,
+            func_name,
             param,
             signature
                 .return_types
@@ -226,7 +231,7 @@ impl ToRust for Import {
             let mut import = String::new();
             for item in &self.items {
                 match item.as_str() {
-                    "cout" => import.push_str("\tio::{Write, Stdout, stdout},\n"),
+                    "cout" => import.push_str("\tio::{Write, stdout},\n"),
                     _ => (),
                 }
             }
@@ -269,6 +274,9 @@ impl ToRust for Program {
             .map(|v| v.to_rust())
             .collect::<Vec<_>>()
             .join(";\n");
-        format!("{}\n\n{}\n\n{}\n", imports, variables, functions)
+        format!(
+            "{}\n\n{}\n\n{}\n\nfn main() {{\n\tstart(std::env::args().collect())\n}}\n",
+            imports, variables, functions
+        )
     }
 }
