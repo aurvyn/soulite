@@ -29,7 +29,7 @@ factorial | Int -> Int
 n = n * factorial(n-1)
 
 ; tail-recursive
-factorial | Int Int -> Int
+factorial_tail | Int Int -> Int
 0 _ = 1
 1 total = total
 n total = factorial(n-1 total*n)

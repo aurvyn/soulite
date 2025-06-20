@@ -20,7 +20,7 @@ factorial | Int -> Int
 1 = 1
 n = n * factorial(n-1)
 
-factorial | Int Int -> Int
+factorial_tail | Int Int -> Int
 0 _ = 1
 1 total = total
 n total = factorial(n-1 total*n)
