@@ -96,7 +96,6 @@ impl ToRust for Expr {
             Expr::Binary { op, lhs, rhs } => match op.as_str() {
                 "<<" | "<|" => {
                     let write_func = if op == "<<" { "" } else { "ln" };
-                    let cout = lhs.to_rust();
                     if let Expr::Binary {
                         lhs: inner_lhs,
                         rhs: inner_rhs,
@@ -109,14 +108,17 @@ impl ToRust for Expr {
                             rhs: inner_rhs.clone(),
                         };
                         format!(
-                            "write{}!({}, {}).unwrap();\n\t{}",
+                            "write{}!(stdout(), \"{{}}\", {}).unwrap();\n\t{}",
                             write_func,
-                            cout,
                             inner_lhs.to_rust(),
                             rhs.to_rust()
                         )
                     } else {
-                        format!("write{}!({}, {}).unwrap()", write_func, cout, rhs.to_rust())
+                        format!(
+                            "write{}!(stdout(), \"{{}}\", {}).unwrap()",
+                            write_func,
+                            rhs.to_rust()
+                        )
                     }
                 }
                 _ => format!("{} {} {}", lhs.to_rust(), op, rhs.to_rust()),
@@ -220,12 +222,23 @@ pub struct Import {
 
 impl ToRust for Import {
     fn to_rust(&self) -> String {
-        let module = format!("mod {};", self.filename);
-        if self.items.is_empty() {
-            module
+        if self.filename == "std" {
+            let mut import = String::new();
+            for item in &self.items {
+                match item.as_str() {
+                    "cout" => import.push_str("\tio::{Write, Stdout, stdout},\n"),
+                    _ => (),
+                }
+            }
+            format!("use std::{{\n{}}};", import)
         } else {
-            let items = self.items.join(", ");
-            format!("{}\nuse {}::{{{}}};", module, self.filename, items)
+            let module = format!("mod {};", self.filename);
+            if self.items.is_empty() {
+                module
+            } else {
+                let items = self.items.join(", ");
+                format!("{}\nuse {}::{{{}}};", module, self.filename, items)
+            }
         }
     }
 }
