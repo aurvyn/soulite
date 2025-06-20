@@ -121,6 +121,7 @@ impl ToRust for Expr {
                         )
                     }
                 }
+                "." => format!("{}{}{}", lhs.to_rust(), op, rhs.to_rust()),
                 _ => format!("{} {} {}", lhs.to_rust(), op, rhs.to_rust()),
             },
             Expr::Call { callee, args } => format!(
