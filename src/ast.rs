@@ -44,6 +44,7 @@ pub enum Pattern {
 impl ToRust for Pattern {
     fn to_rust(&self) -> String {
         match self {
+            Pattern::Literal(Literal::String(lit)) => format!("\"{}\"", lit),
             Pattern::Literal(lit) => lit.to_rust(),
             Pattern::Variable(name) => name.to_rust(),
             Pattern::List(patterns) => format!(
@@ -212,13 +213,35 @@ impl ToRust for Function {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        let body = equation
-            .body
-            .iter()
-            .map(|expr| expr.to_rust())
-            .collect::<Vec<_>>()
-            .join(";\n\t");
-        format!("{} {{\n\t{}\n}}", head, body)
+        let mut body = String::new();
+        for equation in &self.equations {
+            body.push_str(&format!(
+                "({}) => {{\n\t{}\n}}",
+                equation
+                    .parameters_list
+                    .iter()
+                    .map(|p| p.to_rust())
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                equation
+                    .body
+                    .iter()
+                    .map(|expr| expr.to_rust())
+                    .collect::<Vec<_>>()
+                    .join(";\n\t")
+            ));
+        }
+        format!(
+            "{} {{ match ({}) {{\n{}\n}}}}",
+            head,
+            equation
+                .parameters_list
+                .iter()
+                .map(|t| t.to_rust())
+                .collect::<Vec<_>>()
+                .join(", "),
+            body
+        )
     }
 }
 

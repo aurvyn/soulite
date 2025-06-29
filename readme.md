@@ -95,10 +95,10 @@ Person => Animal
 
 This is where it gets similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `Person => Animal` as "implement Animal for Person". Unlike Rust, however, trait declaration is completely implicit.
 
-## Init Function
+## Main Function
 ```
-init | [String]
-[] = cout <| "Usage: main [-h] <command> <..args>"
+main | [String]
+[] = cout <| "Usage: myprogram [-h] <command> <..args>"
 ["fac" n] = cout <| factorial(n 1)
 ["people"] =
 	john, Person("John" 21 ["car keys" "credit card"])
@@ -108,7 +108,7 @@ init | [String]
 	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
 args =
 	cout <| "invalid input `main {args.join(" ")}`"
-	init([])
+	main([])
 ```
 
-An init function acts as the "main" function that you might see in other languages. Here, it should always have `[String]` as a parameter.
+The main function acts as the "main" function that you might see in other languages. Here, it should always have `[String]` as a parameter.

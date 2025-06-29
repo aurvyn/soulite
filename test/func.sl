@@ -27,7 +27,7 @@ n total = factorial_tail(n-1 total*n)
 
 main | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
-["fac" n] = cout <| factorial(n 0)
+["fac" n] = cout <| factorial_tail(n 0)
 ["-h" "fac"] =
 	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
 args =
