@@ -46,10 +46,10 @@ factorial | Int -> Int
 n = n * factorial(n-1)
 
 ; tail-recursive
-factorial | Int Int -> Int
+factorial_tail | Int Int -> Int
 0 _ = 1
 1 total = total
-n total = factorial(n-1 total*n)
+n total = factorial_tail(n-1 total*n)
 ```
 
 A lot of syntax here is influenced by Haskell, so most of it would be self-explanatory if you know that language. However, a few things here are unique:
@@ -98,14 +98,14 @@ This is where it gets similar to Rust. The `T` used here is a generic type, whic
 ## Main Function
 ```
 main | [String]
-[] = cout <| "Usage: myprogram [-h] <command> <..args>"
-["fac" n] = cout <| factorial(n 1)
+[] = cout <| "Usage: <exe_name> [-h] <command> <..args>"
+["fac" n] = cout <| factorial_tail(n.parse().unwrap() 1)
 ["people"] =
 	john, Person("John" 21 ["car keys" "credit card"])
 	john.growUp(3)
 	cout <| john.age ; should print "24"
 ["-h" "fac"] =
-	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
+	cout <| "Calculates the factorial.\nUsage: <exe_name> fac <Integer>"
 args =
 	cout <| "invalid input `main {args.join(" ")}`"
 	main([])

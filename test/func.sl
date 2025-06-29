@@ -26,10 +26,10 @@ factorial_tail | Int Int -> Int
 n total = factorial_tail(n-1 total*n)
 
 main | [String]
-[] = cout <| "Usage: main [-h] <command> <..args>"
-["fac" n] = cout <| factorial_tail(n 0)
+[] = cout <| "Usage: <exe_name> [-h] <command> <..args>"
+["fac" n] = cout <| factorial_tail(n.parse().unwrap() 1)
 ["-h" "fac"] =
-	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
+	cout <| "Calculates the factorial.\nUsage: <exe_name> fac <Integer>"
 args =
 	args_str' args.join(" ")
 	cout <| "invalid argument(s) `{args_str}`"

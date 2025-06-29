@@ -122,8 +122,7 @@ impl ToRust for Expr {
                         )
                     }
                 }
-                "." => format!("{}{}{}", lhs.to_rust(), op, rhs.to_rust()),
-                _ => format!("{} {} {}", lhs.to_rust(), op, rhs.to_rust()),
+                _ => format!("{}{}{}", lhs.to_rust(), op, rhs.to_rust()),
             },
             Expr::Call { callee, args } => format!(
                 "{}({}{})",
@@ -195,17 +194,26 @@ impl ToRust for Function {
         } else {
             &signature.name
         };
-        let param = signature
+        let (param, matcher): (Vec<_>, Vec<_>) = signature
             .arg_types
             .iter()
             .zip(equation.parameters_list.iter())
-            .map(|(t, param)| format!("{}: {}", param.to_rust(), t.to_rust()))
-            .collect::<Vec<_>>()
-            .join(", ");
+            .map(|(t, param)| {
+                let matcher = match t {
+                    Type::String => format!("{}.as_str()", param.to_rust()),
+                    Type::List(_) => format!(
+                        "{}.iter().map(String::as_str).collect::<Vec<_>>()[..]",
+                        param.to_rust()
+                    ),
+                    _ => param.to_rust(),
+                };
+                (format!("{}: {}", param.to_rust(), t.to_rust()), matcher)
+            })
+            .unzip();
         let head = format!(
             "fn {}({}) -> ({})",
             func_name,
-            param,
+            param.join(", "),
             signature
                 .return_types
                 .iter()
@@ -214,7 +222,7 @@ impl ToRust for Function {
                 .join(", ")
         );
         let mut body = String::new();
-        for equation in &self.equations {
+        for equation in self.equations.iter().take(self.equations.len() - 1) {
             body.push_str(&format!(
                 "({}) => {{\n\t{}\n}}",
                 equation
@@ -231,15 +239,19 @@ impl ToRust for Function {
                     .join(";\n\t")
             ));
         }
+        body.push_str(&format!(
+            "_ => {{\n\t{}\n}}",
+            equation
+                .body
+                .iter()
+                .map(|expr| expr.to_rust())
+                .collect::<Vec<_>>()
+                .join(";\n\t")
+        ));
         format!(
             "{} {{ match ({}) {{\n{}\n}}}}",
             head,
-            equation
-                .parameters_list
-                .iter()
-                .map(|t| t.to_rust())
-                .collect::<Vec<_>>()
-                .join(", "),
+            matcher.join(", "),
             body
         )
     }
@@ -300,7 +312,7 @@ impl ToRust for Program {
             .collect::<Vec<_>>()
             .join(";\n");
         format!(
-            "{}\n\n{}\n\n{}\n\nfn main() {{\n\tstart(std::env::args().collect())\n}}\n",
+            "{}\n\n{}\n\n{}\n\nfn main() {{\n\tstart(std::env::args().skip(1).collect())\n}}\n",
             imports, variables, functions
         )
     }

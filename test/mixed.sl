@@ -55,7 +55,7 @@ Person => Animal
 
 main | [String]
 [] = cout <| "Usage: main [-h] <command> <..args>"
-["fac" n] = cout <| factorial(n 1)
+["fac" n] = cout <| factorial_tail(n.parse().unwrap() 1)
 ["people"] =
 	john, Person("John" 21 ["car keys" "credit card"])
 	john.growUp(3)
