@@ -182,7 +182,6 @@ pub struct Function {
 }
 
 impl ToRust for Function {
-    // only support one equation for now
     fn to_rust(&self) -> String {
         if self.equations.is_empty() {
             return String::new();
@@ -221,16 +220,34 @@ impl ToRust for Function {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        let mut body = String::new();
-        for equation in self.equations.iter().take(self.equations.len() - 1) {
-            body.push_str(&format!(
-                "({}) => {{\n\t{}\n}}",
-                equation
-                    .parameters_list
-                    .iter()
-                    .map(|p| p.to_rust())
-                    .collect::<Vec<_>>()
-                    .join(", "),
+        let body = if matcher.len() == 0 {
+            equation
+                .body
+                .iter()
+                .map(|expr| expr.to_rust())
+                .collect::<Vec<_>>()
+                .join(";\n\t")
+        } else {
+            let mut content = String::new();
+            for equation in self.equations.iter().take(self.equations.len() - 1) {
+                content.push_str(&format!(
+                    "({}) => {{\n\t{}\n}}",
+                    equation
+                        .parameters_list
+                        .iter()
+                        .map(|p| p.to_rust())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    equation
+                        .body
+                        .iter()
+                        .map(|expr| expr.to_rust())
+                        .collect::<Vec<_>>()
+                        .join(";\n\t")
+                ));
+            }
+            content.push_str(&format!(
+                "_ => {{\n\t{}\n}}",
                 equation
                     .body
                     .iter()
@@ -238,21 +255,16 @@ impl ToRust for Function {
                     .collect::<Vec<_>>()
                     .join(";\n\t")
             ));
-        }
-        body.push_str(&format!(
-            "_ => {{\n\t{}\n}}",
-            equation
-                .body
-                .iter()
-                .map(|expr| expr.to_rust())
-                .collect::<Vec<_>>()
-                .join(";\n\t")
-        ));
+            content
+        };
         format!(
-            "{} {{ match ({}) {{\n{}\n}}}}",
+            "{} {{{}}}",
             head,
-            matcher.join(", "),
-            body
+            match matcher.len() {
+                0 => format!("{}", body),
+                1 => format!("match {} {{\n{}\n}}", matcher.join(", "), body),
+                _ => format!("match ({}) {{\n{}\n}}", matcher.join(", "), body),
+            }
         )
     }
 }
