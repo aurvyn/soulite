@@ -209,17 +209,20 @@ impl ToRust for Function {
                 (format!("{}: {}", param.to_rust(), t.to_rust()), matcher)
             })
             .unzip();
-        let head = format!(
-            "fn {}({}) -> ({})",
-            func_name,
-            param.join(", "),
-            signature
-                .return_types
-                .iter()
-                .map(|t| t.to_rust())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+        let mut head = format!("fn {}({})", func_name, param.join(", "));
+        match signature.return_types.len() {
+            0 => (),
+            1 => head.push_str(&format!(" -> {}", signature.return_types[0].to_rust())),
+            _ => {
+                let return_types = signature
+                    .return_types
+                    .iter()
+                    .map(|t| t.to_rust())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                head.push_str(&format!(" -> ({})", return_types));
+            }
+        }
         let body = if matcher.len() == 0 {
             equation
                 .body
@@ -230,14 +233,19 @@ impl ToRust for Function {
         } else {
             let mut content = String::new();
             for equation in self.equations.iter().take(self.equations.len() - 1) {
+                let matching = equation
+                    .parameters_list
+                    .iter()
+                    .map(|p| p.to_rust())
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 content.push_str(&format!(
-                    "({}) => {{\n\t{}\n}}",
-                    equation
-                        .parameters_list
-                        .iter()
-                        .map(|p| p.to_rust())
-                        .collect::<Vec<_>>()
-                        .join(", "),
+                    "{} => {{\n\t{}\n}}",
+                    if matcher.len() == 1 {
+                        matching
+                    } else {
+                        format!("({})", matching)
+                    },
                     equation
                         .body
                         .iter()
