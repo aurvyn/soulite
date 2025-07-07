@@ -271,6 +271,25 @@ impl ToRust for Function {
     }
 }
 
+type Field = (String, Type);
+
+pub struct Struct {
+    pub name: String,
+    pub fields: Vec<Field>,
+}
+
+impl ToRust for Struct {
+    fn to_rust(&self) -> String {
+        let fields = self
+            .fields
+            .iter()
+            .map(|(name, kind)| format!("{}: {}", name.to_rust(), kind.to_rust()))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("struct {} {{ {} }}", self.name.to_rust(), fields)
+    }
+}
+
 pub struct Import {
     pub filename: String,
     pub items: Vec<String>,
@@ -301,6 +320,7 @@ impl ToRust for Import {
 
 pub struct Program {
     pub imports: Vec<Import>,
+    pub structs: Vec<Struct>,
     pub functions: Vec<Function>,
     pub variables: Vec<Expr>,
 }
@@ -311,6 +331,12 @@ impl ToRust for Program {
             .imports
             .iter()
             .map(|i| i.to_rust())
+            .collect::<Vec<_>>()
+            .join("");
+        let structs = self
+            .structs
+            .iter()
+            .map(|s| s.to_rust())
             .collect::<Vec<_>>()
             .join("");
         let functions = self
@@ -326,8 +352,8 @@ impl ToRust for Program {
             .collect::<Vec<_>>()
             .join(";");
         format!(
-            "{}{}{}fn main() {{start(std::env::args().skip(1).collect())}}",
-            imports, variables, functions
+            "{}{}{}{}fn main() {{start(std::env::args().skip(1).collect())}}",
+            imports, structs, variables, functions
         )
     }
 }

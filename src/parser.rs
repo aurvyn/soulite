@@ -1,7 +1,9 @@
 use std::vec;
 
 use crate::{
-    ast::{Equation, Expr, Function, Import, Literal, Pattern, Program, Type, TypeSignature},
+    ast::{
+        Equation, Expr, Function, Import, Literal, Pattern, Program, Struct, Type, TypeSignature,
+    },
     lexer::{CheckToken, Token},
 };
 use logos::{Lexer, Logos};
@@ -12,6 +14,7 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
     let mut lex = Token::lexer(&soulite_source);
     let mut program = Program {
         imports: vec![],
+        structs: vec![],
         functions: vec![],
         variables: vec![],
     };
@@ -46,6 +49,40 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                         .push(parse_assignment::<true>(&mut lex, name)?),
                     _ => return err(&lex, "variable or function marker"),
                 }
+            }
+            Token::Type => {
+                let mut result = Struct {
+                    name: lex.slice().to_string(),
+                    fields: vec![],
+                };
+                match lex.next() {
+                    Some(Ok(Token::Colon)) => {
+                        // generic type declaration, not yet implemented
+                    }
+                    Some(Ok(Token::FatArrow)) => {
+                        // trait declaration, not yet implemented
+                    }
+                    Some(Ok(Token::Assign)) => {
+                        // type alias declaration, not yet implemented
+                    }
+                    Some(Ok(Token::Newline)) => {}
+                    _ => return err(&lex, "token after struct declaration"),
+                }
+                while lex.next().is_tab() {
+                    if lex.next().is_identifier() {
+                        let field_name = lex.slice().to_string();
+                        if !lex.next().is_type() {
+                            return err(&lex, "field type");
+                        }
+                        result.fields.push((field_name, parse_type(&mut lex)?));
+                        if !lex.next().is_newline() {
+                            return err(&lex, "newline after field type");
+                        }
+                    } else {
+                        return err(&lex, "field name after tab");
+                    }
+                }
+                program.structs.push(result);
             }
             _ => return err(&lex, "import or declaration"),
         }

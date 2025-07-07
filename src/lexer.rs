@@ -150,6 +150,9 @@ pub enum Token {
     #[token("->")]
     Arrow,
 
+    #[token("=>")]
+    FatArrow,
+
     #[token("_")]
     Underscore,
 
