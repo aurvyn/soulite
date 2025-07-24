@@ -50,40 +50,7 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                     _ => return err(&lex, "variable or function marker"),
                 }
             }
-            Token::Type => {
-                let mut result = Struct {
-                    name: lex.slice().to_string(),
-                    fields: vec![],
-                };
-                match lex.next() {
-                    Some(Ok(Token::Colon)) => {
-                        // generic type declaration, not yet implemented
-                    }
-                    Some(Ok(Token::FatArrow)) => {
-                        // trait declaration, not yet implemented
-                    }
-                    Some(Ok(Token::Assign)) => {
-                        // type alias declaration, not yet implemented
-                    }
-                    Some(Ok(Token::Newline)) => {}
-                    _ => return err(&lex, "token after struct declaration"),
-                }
-                while lex.next().is_tab() {
-                    if lex.next().is_identifier() {
-                        let field_name = lex.slice().to_string();
-                        if !lex.next().is_type() {
-                            return err(&lex, "field type");
-                        }
-                        result.fields.push((field_name, parse_type(&mut lex)?));
-                        if !lex.next().is_newline() {
-                            return err(&lex, "newline after field type");
-                        }
-                    } else {
-                        return err(&lex, "field name after tab");
-                    }
-                }
-                program.structs.push(result);
-            }
+            Token::Type => program.structs.push(parse_struct(&mut lex)?),
             _ => return err(&lex, "import or declaration"),
         }
     }
@@ -113,6 +80,50 @@ fn parse_import(lex: &mut Lexer<Token>) -> Result<Import, String> {
     Ok(import)
 }
 
+fn parse_struct(lex: &mut Lexer<Token>) -> Result<Struct, String> {
+    let mut result = Struct {
+        name: lex.slice().to_string(),
+        fields: vec![],
+    };
+    let mut generic_types = vec![];
+    match lex.next() {
+        Some(Ok(Token::Colon)) => {
+            let mut tok = lex.next();
+            while tok.is_type() {
+                generic_types.push(lex.slice());
+                tok = lex.next();
+            }
+            if !tok.is_newline() {
+                return err(lex, "newline after generic type declaration");
+            }
+        }
+        Some(Ok(Token::FatArrow)) => {
+            // trait declaration, not yet implemented
+        }
+        Some(Ok(Token::Assign)) => {
+            // type alias declaration, not yet implemented
+        }
+        Some(Ok(Token::Newline)) => {}
+        _ => return err(&lex, "token after struct declaration"),
+    }
+    while lex.next().is_tab() {
+        if !lex.next().is_identifier() {
+            return err(&lex, "field name after tab");
+        }
+        let field_name = lex.slice().to_string();
+        if !lex.next().is_type() {
+            return err(&lex, "field type");
+        }
+        result
+            .fields
+            .push((field_name, parse_type(lex, &generic_types)?));
+        if !lex.next().is_newline() {
+            return err(&lex, "newline after field type");
+        }
+    }
+    Ok(result)
+}
+
 fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, String> {
     let mut func = Function {
         signature: TypeSignature {
@@ -124,7 +135,7 @@ fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, Stri
     };
     let mut tok = lex.next();
     while tok.is_type() {
-        func.signature.arg_types.push(parse_type(lex)?);
+        func.signature.arg_types.push(parse_type(lex, &vec![])?);
         tok = lex.next();
     }
     if !tok.is_newline() {
@@ -132,7 +143,7 @@ fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, Stri
             return err(lex, "`->` after argument types");
         }
         while lex.next().is_type() {
-            func.signature.return_types.push(parse_type(lex)?);
+            func.signature.return_types.push(parse_type(lex, &vec![])?);
         }
     }
     if func.signature.arg_types.is_empty() {
@@ -250,23 +261,36 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
     }
 }
 
-fn parse_type(lex: &mut Lexer<Token>) -> Result<Type, String> {
-    match lex.slice() {
-        "Int" => Ok(Type::Integer),
-        "Float" => Ok(Type::Float),
-        "String" => Ok(Type::String),
-        "[" => {
-            if !lex.next().is_type() {
-                return err(lex, "type after `[`");
-            }
-            let inner_type = parse_type(lex)?;
-            if lex.next() != Some(Ok(Token::RightBracket)) {
-                return err(lex, "closing bracket `]`");
-            }
-            Ok(Type::List(Box::new(inner_type)))
+fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<&str>) -> Result<Type, String> {
+    if lex.slice() == "[" {
+        if !lex.next().is_type() {
+            return err(lex, "type after `[`");
         }
-        _ => err(lex, "type"),
+        let inner_type = parse_type(lex, generic_types)?;
+        if lex.next() != Some(Ok(Token::RightBracket)) {
+            return err(lex, "closing bracket `]`");
+        }
+        return Ok(Type::List(Box::new(inner_type)));
     }
+    let result = Ok(match lex.slice() {
+        "Int" => Type::Integer,
+        "Float" => Type::Float,
+        "String" => Type::String,
+        tok if generic_types.contains(&tok) => Type::Generic(tok.to_string()),
+        _ => return err(lex, "type"),
+    });
+    if lex.clone().next() == Some(Ok(Token::LeftBracket)) {
+        lex.next();
+        if !lex.next().is_integer() {
+            return err(lex, "size of array after `[`");
+        }
+        let size = lex.slice().parse::<usize>().unwrap();
+        if lex.next() != Some(Ok(Token::RightBracket)) {
+            return err(lex, "closing bracket `]` for array");
+        }
+        return Ok(Type::Array(Box::new(result?), size));
+    }
+    result
 }
 
 fn parse_parameter(lex: &mut Lexer<Token>) -> Result<Pattern, String> {

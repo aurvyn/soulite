@@ -172,6 +172,8 @@ pub enum Type {
     Float,
     String,
     List(Box<Type>),
+    Array(Box<Type>, usize),
+    Generic(String),
 }
 
 impl ToRust for Type {
@@ -181,6 +183,8 @@ impl ToRust for Type {
             Type::Float => "f64".to_string(),
             Type::String => "String".to_string(),
             Type::List(inner) => format!("Vec<{}>", inner.to_rust()),
+            Type::Array(inner, size) => format!("[{}; {}]", inner.to_rust(), size),
+            Type::Generic(name) => name.to_string(),
         }
     }
 }

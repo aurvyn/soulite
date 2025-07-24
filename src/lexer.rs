@@ -244,6 +244,7 @@ pub trait CheckToken {
     fn is_newline(&self) -> bool;
     fn is_tab(&self) -> bool;
     fn is_type(&self) -> bool;
+    fn is_integer(&self) -> bool;
 }
 
 impl CheckToken for Option<Result<Token, ()>> {
@@ -273,5 +274,9 @@ impl CheckToken for Option<Result<Token, ()>> {
 
     fn is_type(&self) -> bool {
         self == &Some(Ok(Token::Type)) || self == &Some(Ok(Token::LeftBracket))
+    }
+
+    fn is_integer(&self) -> bool {
+        self == &Some(Ok(Token::Integer))
     }
 }
