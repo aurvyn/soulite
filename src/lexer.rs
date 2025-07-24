@@ -1,4 +1,4 @@
-use logos::Logos;
+use logos::{Lexer, Logos};
 
 #[derive(Logos, Clone, Debug, PartialEq)]
 #[logos(skip r" +")]
@@ -278,5 +278,15 @@ impl CheckToken for Option<Result<Token, ()>> {
 
     fn is_integer(&self) -> bool {
         self == &Some(Ok(Token::Integer))
+    }
+}
+
+pub trait Lookahead {
+    fn peek(&mut self) -> Option<Result<Token, ()>>;
+}
+
+impl<'source> Lookahead for Lexer<'source, Token> {
+    fn peek(&mut self) -> Option<Result<Token, ()>> {
+        self.clone().next()
     }
 }
