@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Equation, Expr, Function, Import, Literal, Pattern, Program, Struct, Type, TypeSignature,
     },
-    lexer::{CheckToken, Token},
+    lexer::{CheckToken, Lookahead, Token},
 };
 use logos::{Lexer, Logos};
 
@@ -51,38 +51,7 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                 }
             }
             Token::Type => {
-                let mut result = Struct {
-                    name: lex.slice().to_string(),
-                    fields: vec![],
-                };
-                match lex.next() {
-                    Some(Ok(Token::Colon)) => {
-                        // generic type declaration, not yet implemented
-                    }
-                    Some(Ok(Token::FatArrow)) => {
-                        // trait declaration, not yet implemented
-                    }
-                    Some(Ok(Token::Assign)) => {
-                        // type alias declaration, not yet implemented
-                    }
-                    Some(Ok(Token::Newline)) => {}
-                    _ => return err(&lex, "token after struct declaration"),
-                }
-                while lex.next().is_tab() {
-                    if lex.next().is_identifier() {
-                        let field_name = lex.slice().to_string();
-                        if !lex.next().is_type() {
-                            return err(&lex, "field type");
-                        }
-                        result.fields.push((field_name, parse_type(&mut lex)?));
-                        if !lex.next().is_newline() {
-                            return err(&lex, "newline after field type");
-                        }
-                    } else {
-                        return err(&lex, "field name after tab");
-                    }
-                }
-                program.structs.push(result);
+                program.structs.push(parse_struct(&mut lex)?);
             }
             _ => return err(&lex, "import or declaration"),
         }
@@ -111,6 +80,41 @@ fn parse_import(lex: &mut Lexer<Token>) -> Result<Import, String> {
         }
     }
     Ok(import)
+}
+
+fn parse_struct(lex: &mut Lexer<Token>) -> Result<Struct, String> {
+    let mut result = Struct {
+        name: lex.slice().to_string(),
+        fields: vec![],
+    };
+    match lex.next() {
+        Some(Ok(Token::Colon)) => {
+            // generic type declaration, not yet implemented
+        }
+        Some(Ok(Token::FatArrow)) => {
+            // trait declaration, not yet implemented
+        }
+        Some(Ok(Token::Assign)) => {
+            // type alias declaration, not yet implemented
+        }
+        Some(Ok(Token::Newline)) => {}
+        _ => return err(&lex, "token after struct declaration"),
+    }
+    while lex.next().is_tab() {
+        if lex.next().is_identifier() {
+            let field_name = lex.slice().to_string();
+            if !lex.next().is_type() {
+                return err(&lex, "field type");
+            }
+            result.fields.push((field_name, parse_type(lex)?));
+            if !lex.next().is_newline() {
+                return err(&lex, "newline after field type");
+            }
+        } else {
+            return err(&lex, "field name after tab");
+        }
+    }
+    Ok(result)
 }
 
 fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, String> {
@@ -163,18 +167,15 @@ fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, Stri
         if !lex.next().is_assign() {
             return err(lex, "`=` after function parameters");
         }
-        if !lex.clone().next().is_newline() {
+        if !lex.peek().is_newline() {
             func.equations[i].body.push(parse_expression(lex)?);
             if !lex.next().is_newline() {
                 return err(lex, "newline after function body expression");
             }
         } else {
-            loop {
-                if !lex.clone().next().is_newline() {
-                    break;
-                }
+            while lex.peek().is_newline() {
                 lex.next();
-                if !lex.clone().next().is_tab() {
+                if !lex.peek().is_tab() {
                     break;
                 }
                 lex.next();
@@ -209,7 +210,7 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
         match tok {
             Token::Identifier => {
                 let name = lex.slice().to_string();
-                let Some(Ok(tok)) = lex.clone().next() else {
+                let Some(Ok(tok)) = lex.peek() else {
                     return err(&lex, "token after identifier");
                 };
                 match tok {
@@ -236,7 +237,7 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
             }
             Token::LeftBracket => {
                 let mut elements = vec![];
-                while lex.clone().next() != Some(Ok(Token::RightBracket)) {
+                while lex.peek() != Some(Ok(Token::RightBracket)) {
                     elements.push(parse_expression(lex)?);
                 }
                 lex.next();
@@ -290,7 +291,7 @@ fn parse_parameter(lex: &mut Lexer<Token>) -> Result<Pattern, String> {
         Token::Underscore => Ok(Pattern::Wildcard),
         Token::LeftBracket => {
             let mut elements = vec![];
-            while lex.clone().next() != Some(Ok(Token::RightBracket)) {
+            while lex.peek() != Some(Ok(Token::RightBracket)) {
                 elements.push(parse_parameter(lex)?);
             }
             lex.next();
@@ -319,10 +320,10 @@ fn parse_literal(lex: &mut Lexer<Token>, tok: &Token) -> Result<Expr, String> {
 }
 
 fn parse_identifier(lex: &mut Lexer<Token>, name: String) -> Result<Expr, String> {
-    if lex.clone().next() == Some(Ok(Token::LeftParen)) {
+    if lex.peek() == Some(Ok(Token::LeftParen)) {
         lex.next();
         let mut args = vec![];
-        while lex.clone().next() != Some(Ok(Token::RightParen)) {
+        while lex.peek() != Some(Ok(Token::RightParen)) {
             args.push(parse_expression(lex)?);
         }
         lex.next();
@@ -337,7 +338,7 @@ fn parse_binary_expression(
     mut lhs: Expr,
     precedence: u8,
 ) -> Result<Expr, String> {
-    while let Some(Ok(tok)) = lex.clone().next() {
+    while let Some(Ok(tok)) = lex.peek() {
         let prec = tok.get_precedence();
         if prec < precedence {
             return Ok(lhs);
@@ -345,7 +346,7 @@ fn parse_binary_expression(
         lex.next();
         let op = lex.slice().to_string();
         let mut rhs = parse_primary(lex)?;
-        if let Some(Ok(next_tok)) = lex.clone().next() {
+        if let Some(Ok(next_tok)) = lex.peek() {
             let next_prec = next_tok.get_precedence();
             if prec <= next_prec {
                 let is_left_associative = if !matches!(op.as_str(), "<<" | "<|" | "**") {
