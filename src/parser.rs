@@ -85,28 +85,22 @@ fn parse_struct(lex: &mut Lexer<Token>) -> Result<Struct, String> {
         name: lex.slice().to_string(),
         fields: vec![],
     };
-    let mut generic_types = vec![];
-    match lex.next() {
-        Some(Ok(Token::Colon)) => {
-            let mut tok = lex.next();
-            while tok.is_type() {
-                generic_types.push(lex.slice());
-                tok = lex.next();
-            }
-            if !tok.is_newline() {
-                return err(lex, "newline after generic type declaration");
-            }
-        }
+    let mut tok = lex.next();
+    let generic_types = if tok == Some(Ok(Token::LessThan)) {
+        let result = parse_generic_types(lex)?;
+        tok = lex.next();
+        result
+    } else {
+        vec![]
+    };
+    match tok {
         Some(Ok(Token::FatArrow)) => {
-            // trait declaration, not yet implemented
+            // trait impl, not yet implemented
         }
-        Some(Ok(Token::Assign)) => {
-            // type alias declaration, not yet implemented
-        }
-        Some(Ok(Token::Newline)) => {}
-        _ => return err(&lex, "token after struct declaration"),
+        Some(Ok(Token::Assign)) => {}
+        _ => return err(&lex, "colon, arrow, or generic type after struct name"),
     }
-    while lex.next().is_tab() {
+    while lex.next().is_newline() && lex.next().is_tab() {
         if !lex.next().is_identifier() {
             return err(&lex, "field name after tab");
         }
@@ -117,9 +111,6 @@ fn parse_struct(lex: &mut Lexer<Token>) -> Result<Struct, String> {
         result
             .fields
             .push((field_name, parse_type(lex, &generic_types)?));
-        if !lex.next().is_newline() {
-            return err(&lex, "newline after field type");
-        }
     }
     Ok(result)
 }
@@ -171,8 +162,8 @@ fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, Stri
             }
             func.equations[i].parameters_list.push(pattern);
         }
-        if !lex.next().is_assign() {
-            return err(lex, "`=` after function parameters");
+        if !lex.next().is_colon() {
+            return err(lex, "`:` after function parameters");
         }
         if !lex.peek().is_newline() {
             func.equations[i].body.push(parse_expression(lex)?);
@@ -194,6 +185,19 @@ fn parse_function(lex: &mut Lexer<Token>, name: String) -> Result<Function, Stri
         }
     }
     Ok(func)
+}
+
+fn parse_generic_types(lex: &mut Lexer<Token>) -> Result<Vec<String>, String> {
+    let mut generic_types = vec![];
+    let mut tok = lex.next();
+    while tok.is_type() {
+        generic_types.push(lex.slice().to_string());
+        tok = lex.next();
+    }
+    if tok != Some(Ok(Token::GreaterThan)) {
+        return err(lex, "`>` after generic type declaration");
+    }
+    Ok(generic_types)
 }
 
 fn parse_assignment<const MUTABLE: bool>(
@@ -258,7 +262,7 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
     }
 }
 
-fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<&str>) -> Result<Type, String> {
+fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Type, String> {
     if lex.slice() == "[" {
         if !lex.next().is_type() {
             return err(lex, "type after `[`");
@@ -273,7 +277,7 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<&str>) -> Result<Type,
         "Int" => Type::Integer,
         "Float" => Type::Float,
         "String" => Type::String,
-        tok if generic_types.contains(&tok) => Type::Generic(tok.to_string()),
+        tok if generic_types.contains(&tok.to_string()) => Type::Generic(tok.to_string()),
         _ => return err(lex, "type"),
     });
     if lex.clone().next() == Some(Ok(Token::LeftBracket)) {

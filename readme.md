@@ -29,27 +29,27 @@ mySimpleFunc |-> String
 
 ; this function takes in two Strings and returns a String
 greet | String String -> String
-theirName myName =
+theirName myName:
 	"Hello {theirName}! My name is {myName}."
 
 ; this function has a parameter but returns nothing
 printGreet | String
-"simple" =
+"simple":
 	cout <| greet("Andy" "John")
-"what" =
+"what":
 	cout <| greet("Beta" "Alpha")
 
 ; scenarios where pattern matching is more useful
 factorial | Int -> Int
-0 = 1
-1 = 1
-n = n * factorial(n-1)
+0: 1
+1: 1
+n: n * factorial(n-1)
 
 ; tail-recursive
 factorial_tail | Int Int -> Int
-0 _ = 1
-1 total = total
-n total = factorial_tail(n-1 total*n)
+0 _: 1
+1 total: total
+n total: factorial_tail(n-1 total*n)
 ```
 
 A lot of syntax here is influenced by Haskell, so most of it would be self-explanatory if you know that language. However, a few things here are unique:
@@ -73,40 +73,49 @@ Similar to `<<`, except that it acts as a "closing version". This means that thi
 
 ## Structs and Traits
 ```
-; struct declaration with generic type `T`
-Person: T
+; simple struct
+Item =
+	name String
+	amount Int
+
+; struct with generic type `T`
+Person<T> =
 	name String
 	age Int
-	items T[5]
+	items T[2]
 
 	add_item | T
-	item = self.items << item
+	item: self.items << item
 
-	get_items |-> &T[5]
+	get_items |-> &T[2]
 		&items
 
-; trait declaration & implement for struct
+; simple trait
+Animal:
+	grow_up | Int -> Int
+
+; implement trait for Person
 Person => Animal
 	grow_up | Int -> Int
-	years =
+	years:
 		age += years
 		age
 ```
 
-This is where it gets similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `Person => Animal` as "implement Animal for Person". Unlike Rust, however, trait declaration is completely implicit.
+This is where it gets similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `Person => Animal` as "implement Animal for Person".
 
 ## Main Function
 ```
 main | [String]
-[] = cout <| "Usage: <exe_name> [-h] <command> <..args>"
-["fac" n] = cout <| factorial_tail(n.parse().unwrap() 1)
-["people"] =
+[]: cout <| "Usage: <exe_name> [-h] <command> <..args>"
+["fac" n]: cout <| factorial_tail(n.parse().unwrap() 1)
+["people"]:
 	john, Person("John" 21 ["car keys" "credit card"])
-	john.growUp(3)
+	john.grow_up(3)
 	cout <| john.age ; should print "24"
-["-h" "fac"] =
+["-h" "fac"]:
 	cout <| "Calculates the factorial.\nUsage: <exe_name> fac <Integer>"
-args =
+args:
 	cout <| "invalid input `main {args.join(" ")}`"
 	main([])
 ```
