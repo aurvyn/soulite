@@ -10,8 +10,8 @@ Person<T> =
 	add_item | T
 	item: self.items << item
 
-	get_items |-> &T[5]
-		&items
+	get_items |-> @T[5]
+		@items
 
 Animal:
 	grow_up | Int -> Int

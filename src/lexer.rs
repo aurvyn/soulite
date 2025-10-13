@@ -268,7 +268,9 @@ impl CheckToken for Option<Result<Token, ()>> {
     }
 
     fn is_type(&self) -> bool {
-        self == &Some(Ok(Token::Type)) || self == &Some(Ok(Token::LeftBracket))
+        self == &Some(Ok(Token::Type))
+            || self == &Some(Ok(Token::LeftBracket))
+            || self == &Some(Ok(Token::At))
     }
 
     fn is_integer(&self) -> bool {
@@ -277,11 +279,43 @@ impl CheckToken for Option<Result<Token, ()>> {
 }
 
 pub trait Lookahead {
+    fn skip_indents(&mut self, indent: usize) -> bool;
+    fn next_with_indent(&mut self, indent: usize) -> Option<Result<Token, ()>>;
+    fn step(&mut self) -> Option<Result<Token, ()>>;
     fn peek(&mut self) -> Option<Result<Token, ()>>;
+    fn lookahead(&mut self) -> Option<Result<Token, ()>>;
 }
 
 impl<'source> Lookahead for Lexer<'source, Token> {
+    fn skip_indents(&mut self, indent: usize) -> bool {
+        for _ in 0..indent {
+            if !self.next().is_tab() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn next_with_indent(&mut self, indent: usize) -> Option<Result<Token, ()>> {
+        if self.skip_indents(indent) {
+            self.next()
+        } else {
+            None
+        }
+    }
+
+    fn step(&mut self) -> Option<Result<Token, ()>> {
+        while self.peek().is_newline() {
+            self.next();
+        }
+        self.next()
+    }
+
     fn peek(&mut self) -> Option<Result<Token, ()>> {
         self.clone().next()
+    }
+
+    fn lookahead(&mut self) -> Option<Result<Token, ()>> {
+        self.clone().step()
     }
 }

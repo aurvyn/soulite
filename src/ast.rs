@@ -73,6 +73,7 @@ impl ToRust for Vec<Pattern> {
 
 #[derive(Clone)]
 pub enum Expr {
+    Reference(Box<Expr>),
     List(Vec<Expr>),
     Literal(Literal),
     Variable(String),
@@ -95,6 +96,7 @@ pub enum Expr {
 impl ToRust for Expr {
     fn to_rust(&self) -> String {
         match self {
+            Expr::Reference(inner) => format!("&{}", inner.to_rust()),
             Expr::List(items) => format!(
                 "vec![{}]",
                 items
@@ -171,6 +173,7 @@ pub enum Type {
     Integer,
     Float,
     String,
+    Reference(Box<Type>),
     List(Box<Type>),
     Array(Box<Type>, usize),
     Generic(String),
@@ -182,6 +185,7 @@ impl ToRust for Type {
             Type::Integer => "i64".to_string(),
             Type::Float => "f64".to_string(),
             Type::String => "String".to_string(),
+            Type::Reference(inner) => format!("&{}", inner.to_rust()),
             Type::List(inner) => format!("Vec<{}>", inner.to_rust()),
             Type::Array(inner, size) => format!("[{}; {}]", inner.to_rust(), size),
             Type::Generic(name) => name.to_string(),
@@ -280,6 +284,7 @@ type Field = (String, Type);
 pub struct Struct {
     pub name: String,
     pub fields: Vec<Field>,
+    pub methods: Vec<Function>,
 }
 
 impl ToRust for Struct {
