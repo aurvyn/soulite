@@ -123,3 +123,35 @@ args:
 ```
 
 The main function acts as the "main" function that you might see in other languages. Here, it should always have `[String]` as a parameter.
+
+# Milestones
+
+- [x] Variables
+  - [x] Mutable
+  - [x] Immutable
+  - [x] Static
+  - [x] Const
+- [ ] Comments
+  - [x] Single line
+  - [ ] Multi line
+- [ ] Functions
+  - [x] Parameter matching
+  - [ ] Pattern matching
+	- [x] Literals
+	- [x] Variables
+	- [x] Wildcards
+	- [ ] Record pattern (Haskell)
+	- [ ] As pattern (Haskell)
+	- [ ] Generic Types
+- [ ] Structs
+  - [x] Fields
+  - [x] Generic Types
+  - [ ] Methods
+    - [x] Generic Types
+	- [ ] Self field reference
+- [ ] Traits
+  - [ ] Method declaration
+  - [ ] Generic Types
+  - [ ] Implementation for structs
+	- [ ] Generic Types
+	- [ ] Self field reference
