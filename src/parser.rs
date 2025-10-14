@@ -160,8 +160,10 @@ fn parse_function(
     }
     if func.signature.arg_types.is_empty() {
         let mut body = vec![];
-        while lex.next_with_indent(indent).is_tab() {
+        lex.step_before();
+        while lex.peek().is_tab() && lex.skip_indents(indent + 1) {
             body.push(parse_expression(lex)?);
+            lex.step_before();
         }
         func.equations.push(Equation {
             parameters_list: vec![],
@@ -176,7 +178,9 @@ fn parse_function(
             parameters_list: vec![],
             body: vec![],
         });
-        lex.skip_indents(indent);
+        if !lex.skip_indents(indent) {
+            return err(lex, "indentation");
+        }
         for _ in 0..known_param {
             let pattern = parse_parameter(lex)?;
             if matches!(pattern, Pattern::Variable(_) | Pattern::Wildcard) {
@@ -193,13 +197,10 @@ fn parse_function(
                 return err(lex, "newline after function body expression");
             }
         } else {
-            while lex.peek().is_newline() {
-                lex.next();
-                if !lex.peek().is_tab() {
-                    break;
-                }
-                lex.next();
+            lex.step_before();
+            while lex.peek().is_tab() && lex.skip_indents(indent + 1) {
                 func.equations[i].body.push(parse_expression(lex)?);
+                lex.step_before();
             }
         }
         if known_param == 0 {

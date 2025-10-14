@@ -33,4 +33,5 @@ main | [String]
 args:
 	args_str :- args.join(" ")
 	cout <| "invalid argument(s) `{args_str}`"
+
 	main([])
