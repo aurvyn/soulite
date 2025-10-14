@@ -26,6 +26,16 @@ pub enum Literal {
     String(String),
 }
 
+impl Literal {
+    fn to_rust_type(&self) -> String {
+        match self {
+            Literal::Integer(_) => "i64".to_string(),
+            Literal::Float(_) => "f64".to_string(),
+            Literal::String(_) => "String".to_string(),
+        }
+    }
+}
+
 impl ToRust for Literal {
     fn to_rust(&self) -> String {
         match self {
@@ -72,6 +82,24 @@ impl ToRust for Vec<Pattern> {
 }
 
 #[derive(Clone)]
+pub enum AssignType {
+    Const,
+    Static,
+    Normal,
+}
+
+impl ToRust for AssignType {
+    fn to_rust(&self) -> String {
+        match self {
+            AssignType::Const => "const",
+            AssignType::Static => "static",
+            AssignType::Normal => "let",
+        }
+        .to_string()
+    }
+}
+
+#[derive(Clone)]
 pub enum Expr {
     Reference(Box<Expr>),
     List(Vec<Expr>),
@@ -88,9 +116,34 @@ pub enum Expr {
     },
     Assign {
         name: String,
+        assign_type: AssignType,
         mutable: bool,
         value: Box<Expr>,
     },
+}
+
+impl Expr {
+    fn to_rust_type(&self) -> String {
+        match self {
+            Expr::Reference(inner) => format!("&{}", inner.to_rust_type()),
+            Expr::List(items) => format!(
+                "Vec<{}>",
+                items
+                    .first()
+                    .map_or("()".to_string(), |item| item.to_rust_type())
+            ),
+            Expr::Literal(lit) => lit.to_rust_type(),
+            Expr::Variable(_) => "_".to_string(),
+            Expr::Binary { op: _, lhs, rhs: _ } => lhs.to_rust_type(),
+            Expr::Call { callee: _, args: _ } => "_".to_string(),
+            Expr::Assign {
+                name: _,
+                assign_type: _,
+                mutable: _,
+                value,
+            } => value.to_rust_type(),
+        }
+    }
 }
 
 impl ToRust for Expr {
@@ -149,13 +202,25 @@ impl ToRust for Expr {
             Expr::Assign {
                 name,
                 mutable,
+                assign_type,
                 value,
-            } => format!(
-                "let {}{} = {}",
-                if *mutable { "mut " } else { "" },
-                name,
-                value.to_rust()
-            ),
+            } => {
+                let (t, val) = if matches!(assign_type, AssignType::Const | AssignType::Static)
+                    && let Expr::Literal(Literal::String(val)) = *value.clone()
+                {
+                    ("&str".to_string(), format!("\"{}\"", val))
+                } else {
+                    (value.to_rust_type(), value.to_rust())
+                };
+                format!(
+                    "{} {}{}:{}={}",
+                    assign_type.to_rust(),
+                    if *mutable { "mut " } else { "" },
+                    name,
+                    t,
+                    val
+                )
+            }
         }
     }
 }
@@ -357,12 +422,20 @@ impl ToRust for Program {
         let variables = self
             .variables
             .iter()
-            .map(|v| v.to_rust())
+            .map(|v| format!("{};", v.to_rust()))
             .collect::<Vec<_>>()
-            .join(";");
+            .join("");
         format!(
-            "{}{}{}{}fn main() {{start(std::env::args().skip(1).collect())}}",
-            imports, structs, variables, functions
+            "{}{}{}{}{}",
+            imports,
+            structs,
+            variables,
+            functions,
+            if self.functions.iter().any(|f| f.signature.name == "main") {
+                "fn main() {start(std::env::args().skip(1).collect())}"
+            } else {
+                "fn main() {}"
+            }
         )
     }
 }

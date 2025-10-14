@@ -2,7 +2,8 @@ use std::vec;
 
 use crate::{
     ast::{
-        Equation, Expr, Function, Import, Literal, Pattern, Program, Struct, Type, TypeSignature,
+        AssignType, Equation, Expr, Function, Import, Literal, Pattern, Program, Struct, Type,
+        TypeSignature,
     },
     lexer::{CheckToken, Lookahead, Token},
 };
@@ -45,12 +46,11 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                             .functions
                             .push(parse_function(&mut lex, name, &vec![], 0)?)
                     }
-                    Token::Apostrophe => program
-                        .variables
-                        .push(parse_assignment::<false>(&mut lex, name)?),
-                    Token::Comma => program
-                        .variables
-                        .push(parse_assignment::<true>(&mut lex, name)?),
+                    Token::Colon => program.variables.push(parse_assignment(
+                        &mut lex,
+                        name,
+                        AssignType::Static,
+                    )?),
                     _ => return err(&lex, "variable or function marker"),
                 }
             }
@@ -222,13 +222,35 @@ fn parse_generic_types(lex: &mut Lexer<Token>) -> Result<Vec<String>, String> {
     Ok(generic_types)
 }
 
-fn parse_assignment<const MUTABLE: bool>(
+fn parse_assignment(
     lex: &mut Lexer<Token>,
     name: String,
+    mut assign_type: AssignType,
 ) -> Result<Expr, String> {
+    let Some(Ok(mut tok)) = lex.next() else {
+        return err(lex, "expected token after colon");
+    };
+    if tok == Token::Type {
+        let _ = parse_type(lex, &vec![])?;
+        if let Some(Ok(token)) = lex.next() {
+            tok = token;
+        } else {
+            return err(lex, "expected token after type");
+        };
+    }
+    let mutable = match tok {
+        Token::Colon => {
+            assign_type = AssignType::Const;
+            false
+        }
+        Token::Minus => false,
+        Token::Assign => true,
+        _ => return err(lex, "`-` or `=` after colon"),
+    };
     Ok(Expr::Assign {
         name,
-        mutable: MUTABLE,
+        assign_type,
+        mutable,
         value: Box::new(parse_expression(lex)?),
     })
 }
@@ -243,20 +265,11 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
         match tok {
             Token::Identifier => {
                 let name = lex.slice().to_string();
-                let Some(Ok(tok)) = lex.peek() else {
-                    return err(&lex, "token after identifier");
-                };
-                match tok {
-                    Token::Apostrophe => {
-                        lex.next();
-                        parse_assignment::<false>(lex, name)
-                    }
-                    Token::Comma => {
-                        lex.next();
-                        parse_assignment::<true>(lex, name)
-                    }
-                    _ => parse_identifier(lex, name),
+                if lex.peek() != Some(Ok(Token::Colon)) {
+                    return parse_identifier(lex, name);
                 }
+                lex.next();
+                parse_assignment(lex, name, AssignType::Normal)
             }
             Token::Float => parse_literal(lex, &tok),
             Token::Integer => parse_literal(lex, &tok),
@@ -315,7 +328,7 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
                 tok if generic_types.contains(&tok.to_string()) => Type::Generic(tok.to_string()),
                 _ => return err(lex, "type"),
             };
-            if lex.clone().next() == Some(Ok(Token::LeftBracket)) {
+            if lex.peek() == Some(Ok(Token::LeftBracket)) {
                 lex.next();
                 if !lex.next().is_integer() {
                     return err(lex, "size of array after `[`");

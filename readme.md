@@ -20,9 +20,11 @@ Anyhow, let's get into the syntax.
 ; this imports `cout` from the standard library
 +std-cout
 
-myVar' "this is an immutable variable"
+myConst :: "this is a const variable" ; only valid in global scope
 
-myMutable, "this is a mutable variable"
+myVar :- "this is an immutable variable"
+
+myMutable := "this is a mutable variable"
 
 mySimpleFunc |-> String
 	"this is a function with no parameters and returns a string"

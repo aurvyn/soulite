@@ -31,6 +31,6 @@ main | [String]
 ["-h" "fac"]:
 	cout <| "Calculates the factorial.\nUsage: <exe_name> fac <Integer>"
 args:
-	args_str' args.join(" ")
+	args_str :- args.join(" ")
 	cout <| "invalid argument(s) `{args_str}`"
 	main([])

@@ -3,9 +3,11 @@
 ; this imports `cout` from the standard library
 +std-cout
 
-myVar' "this is an immutable variable"
+myConst :: "this is a const variable" ; only valid in global scope
 
-myMutable, "this is a mutable variable"
+myVar :- "this is an immutable variable"
+
+myMutable := "this is a mutable variable"
 
 mySimpleFunc |-> String
 	"this is a function with no parameters and returns a string"
@@ -61,7 +63,7 @@ main | [String]
 []: cout <| "Usage: main [-h] <command> <..args>"
 ["fac" n]: cout <| factorial_tail(n.parse().unwrap() 1)
 ["people"]:
-	john, Person("John" 21 ["car keys" "credit card"])
+	john := Person("John" 21 ["car keys" "credit card"])
 	john.growUp(3)
 	cout <| john.age ; should print "24"
 ["-h" "fac"]:

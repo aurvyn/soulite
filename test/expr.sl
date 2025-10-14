@@ -1,9 +1,11 @@
 ; this is a comment
 
-+std-cout ; imports cout from std
++std:cout ; imports cout from std
 
-my_int' 32
+myConst :: 3.14
 
-my_str, "this is a string"
+my_int :- 32
+
+my_str := "this is a string"
 
 ; end
