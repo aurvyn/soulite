@@ -18,7 +18,7 @@ Anyhow, let's get into the syntax.
 ; this is a comment by the way
 
 ; this imports `cout` from the standard library
-+std-cout
++std:cout
 
 myConst :: "this is a const variable" ; only valid in global scope
 
