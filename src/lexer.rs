@@ -18,7 +18,7 @@ pub enum Token {
     #[regex(r#""(?:[^"]|\\")*""#)]
     String,
 
-    #[regex(r";[^\n]*")]
+    #[regex(r"\\[^\n]*")]
     Comment,
 
     #[token("=")]

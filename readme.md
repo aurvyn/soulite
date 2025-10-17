@@ -15,12 +15,12 @@ Anyhow, let's get into the syntax.
 
 ## Variables and Functions
 ```
-; this is a comment by the way
+\ this is a comment by the way
 
-; this imports `cout` from the standard library
+\ this imports `cout` from the standard library
 +std:cout
 
-myConst :: "this is a const variable" ; only valid in global scope
+myConst :: "this is a const variable" \ only valid in global scope
 
 myVar :- "this is an immutable variable"
 
@@ -29,25 +29,25 @@ myMutable := "this is a mutable variable"
 mySimpleFunc |-> String
 	"this is a function with no parameters and returns a string"
 
-; this function takes in two Strings and returns a String
+\ this function takes in two Strings and returns a String
 greet | String String -> String
 theirName myName:
 	"Hello {theirName}! My name is {myName}."
 
-; this function has a parameter but returns nothing
+\ this function has a parameter but returns nothing
 printGreet | String
 "simple":
 	cout <| greet("Andy" "John")
 "what":
 	cout <| greet("Beta" "Alpha")
 
-; scenarios where pattern matching is more useful
+\ scenarios where pattern matching is more useful
 factorial | Int -> Int
 0: 1
 1: 1
 n: n * factorial(n-1)
 
-; tail-recursive
+\ tail-recursive
 factorial_tail | Int Int -> Int
 0 _: 1
 1 total: total
@@ -75,12 +75,12 @@ Similar to `<<`, except that it acts as a "closing version". This means that thi
 
 ## Structs and Traits
 ```
-; simple struct
+\ simple struct
 Item =
 	name String
 	amount Int
 
-; struct with generic type `T`
+\ struct with generic type `T`
 Person<T> =
 	name String
 	age Int
@@ -92,11 +92,11 @@ Person<T> =
 	get_items |-> @T[2]
 		@items
 
-; simple trait
+\ simple trait
 Animal:
 	grow_up | Int -> Int
 
-; implement trait for Person
+\ implement trait for Person
 Person => Animal
 	grow_up | Int -> Int
 	years:
@@ -114,7 +114,7 @@ main | [String]
 ["people"]:
 	john, Person("John" 21 ["car keys" "credit card"])
 	john.grow_up(3)
-	cout <| john.age ; should print "24"
+	cout <| john.age  \ should print "24"
 ["-h" "fac"]:
 	cout <| "Calculates the factorial.\nUsage: <exe_name> fac <Integer>"
 args:
