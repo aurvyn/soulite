@@ -46,7 +46,7 @@ Person<T> =
 	item: self.items << item
 
 	get_items |-> @T[2]
-		@items
+		@self.items
 
 \ simple trait
 Animal:
@@ -56,8 +56,8 @@ Animal:
 Person => Animal
 	grow_up | Int -> Int
 	years:
-		age += years
-		age
+		self.age += years
+		self.age
 
 main | [String]
 []: cout <| "Usage: main [-h] <command> <..args>"

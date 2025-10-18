@@ -269,6 +269,7 @@ pub struct Equation {
 pub struct Function {
     pub signature: TypeSignature,
     pub equations: Vec<Equation>,
+    pub is_method: bool,
 }
 
 impl ToRust for Function {
@@ -299,7 +300,12 @@ impl ToRust for Function {
                 (format!("{}: {}", param.to_rust(), t.to_rust()), matcher)
             })
             .unzip();
-        let mut head = format!("fn {}({})", func_name, param.join(","));
+        let mut head = format!(
+            "fn {}({}{})",
+            func_name,
+            if self.is_method { "&self," } else { "" },
+            param.join(",")
+        );
         let ret = signature.return_types.to_rust(",");
         match signature.return_types.len() {
             0 => {}

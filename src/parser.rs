@@ -46,7 +46,7 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                     Token::Pipe => {
                         program
                             .functions
-                            .push(parse_function(&mut lex, name, &vec![], 0)?)
+                            .push(parse_function(&mut lex, name, &vec![], false, 0)?)
                     }
                     Token::Colon => program.variables.push(parse_assignment(
                         &mut lex,
@@ -167,7 +167,7 @@ fn parse_struct(
         } else if tok == Some(Ok(Token::Pipe)) {
             result
                 .methods
-                .push(parse_function(lex, field_name, &generic_types, 1)?);
+                .push(parse_function(lex, field_name, &generic_types, true, 1)?);
         } else {
             return err(&lex, "field type");
         }
@@ -201,7 +201,7 @@ fn parse_impl(
         }
         result
             .methods
-            .push(parse_function(lex, method_name, &generic_types, 1)?);
+            .push(parse_function(lex, method_name, &generic_types, true, 1)?);
     }
     Ok(result)
 }
@@ -236,11 +236,13 @@ fn parse_function(
     lex: &mut Lexer<Token>,
     name: String,
     generic_types: &Vec<String>,
+    is_method: bool,
     indent: usize,
 ) -> Result<Function, String> {
     let mut func = Function {
         signature: parse_signature(lex, name, generic_types)?,
         equations: vec![],
+        is_method,
     };
     if func.signature.arg_types.is_empty() {
         let mut body = vec![];

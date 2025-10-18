@@ -11,7 +11,7 @@ Person<T> =
 	item: self.items << item
 
 	get_items |-> @T[5]
-		@items
+		@self.items
 
 Animal:
 	grow_up | Int -> Int
@@ -19,5 +19,5 @@ Animal:
 Person => Animal
 	grow_up | Int -> Int
 	years:
-		age += years
-		age
+		self.age += years
+		self.age
