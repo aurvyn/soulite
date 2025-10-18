@@ -19,6 +19,19 @@ impl ToRust for String {
     }
 }
 
+trait JoinToRust {
+    fn to_rust(&self, sep: &str) -> String;
+}
+
+impl<T: ToRust> JoinToRust for Vec<T> {
+    fn to_rust(&self, sep: &str) -> String {
+        self.iter()
+            .map(|item| item.to_rust())
+            .collect::<Vec<_>>()
+            .join(sep)
+    }
+}
+
 #[derive(Clone)]
 pub enum Literal {
     Integer(i64),
@@ -59,25 +72,9 @@ impl ToRust for Pattern {
             Pattern::Literal(Literal::String(lit)) => format!("\"{}\"", lit),
             Pattern::Literal(lit) => lit.to_rust(),
             Pattern::Variable(name) => name.to_rust(),
-            Pattern::List(patterns) => format!(
-                "[{}]",
-                patterns
-                    .iter()
-                    .map(|p| p.to_rust())
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
+            Pattern::List(patterns) => format!("[{}]", patterns.to_rust(",")),
             Pattern::Wildcard => "_".to_string(),
         }
-    }
-}
-
-impl ToRust for Vec<Pattern> {
-    fn to_rust(&self) -> String {
-        self.iter()
-            .map(|pattern| pattern.to_rust())
-            .collect::<Vec<_>>()
-            .join(",")
     }
 }
 
@@ -150,14 +147,7 @@ impl ToRust for Expr {
     fn to_rust(&self) -> String {
         match self {
             Expr::Reference(inner) => format!("&{}", inner.to_rust()),
-            Expr::List(items) => format!(
-                "vec![{}]",
-                items
-                    .iter()
-                    .map(|item| item.to_rust())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            Expr::List(items) => format!("vec![{}]", items.to_rust(",")),
             Expr::Literal(lit) => lit.to_rust(),
             Expr::Variable(name) => name.to_rust(),
             Expr::Binary { op, lhs, rhs } => match op.as_str() {
@@ -194,10 +184,7 @@ impl ToRust for Expr {
                 "{}({}{})",
                 if callee == "main" { "start" } else { &callee },
                 if callee == "join" { "&" } else { "" },
-                args.iter()
-                    .map(|arg| arg.to_rust())
-                    .collect::<Vec<_>>()
-                    .join(", ")
+                args.to_rust(",")
             ),
             Expr::Assign {
                 name,
@@ -225,15 +212,6 @@ impl ToRust for Expr {
     }
 }
 
-impl ToRust for Vec<Expr> {
-    fn to_rust(&self) -> String {
-        self.iter()
-            .map(|expr| expr.to_rust())
-            .collect::<Vec<_>>()
-            .join(";")
-    }
-}
-
 pub enum Type {
     Integer,
     Float,
@@ -258,15 +236,6 @@ impl ToRust for Type {
     }
 }
 
-impl ToRust for Vec<Type> {
-    fn to_rust(&self) -> String {
-        self.iter()
-            .map(|t| t.to_rust())
-            .collect::<Vec<_>>()
-            .join(", ")
-    }
-}
-
 pub struct TypeSignature {
     pub name: String,
     pub arg_types: Vec<Type>,
@@ -282,11 +251,11 @@ impl ToRust for TypeSignature {
                 .iter()
                 .map(|t| format!("_: {}", t.to_rust()))
                 .collect::<Vec<_>>()
-                .join(", "),
+                .join(","),
             match self.return_types.len() {
                 0 => "()".to_string(),
-                1 => self.return_types.to_rust(),
-                _ => format!("({})", self.return_types.to_rust()),
+                1 => self.return_types.to_rust(","),
+                _ => format!("({})", self.return_types.to_rust(",")),
             }
         )
     }
@@ -330,25 +299,25 @@ impl ToRust for Function {
                 (format!("{}: {}", param.to_rust(), t.to_rust()), matcher)
             })
             .unzip();
-        let mut head = format!("fn {}({})", func_name, param.join(", "));
-        let ret = signature.return_types.to_rust();
+        let mut head = format!("fn {}({})", func_name, param.join(","));
+        let ret = signature.return_types.to_rust(",");
         match signature.return_types.len() {
             0 => {}
             1 => write!(head, " -> {}", ret).unwrap(),
             _ => write!(head, " -> ({})", ret).unwrap(),
         }
         let body = if matcher.len() == 0 {
-            equation.body.to_rust()
+            equation.body.to_rust(";")
         } else {
             let mut content = String::new();
             for equation in self.equations.iter().take(self.equations.len() - 1) {
-                let mut matching = equation.parameters_list.to_rust();
+                let mut matching = equation.parameters_list.to_rust(",");
                 if matcher.len() > 1 {
                     matching = format!("({})", matching);
                 }
-                write!(content, "{} => {{{}}}", matching, equation.body.to_rust()).unwrap();
+                write!(content, "{}=>{{{}}}", matching, equation.body.to_rust(";")).unwrap();
             }
-            write!(content, "_ => {{{}}}", equation.body.to_rust()).unwrap();
+            write!(content, "_=>{{{}}}", equation.body.to_rust(";")).unwrap();
             content
         };
         format!(
@@ -371,12 +340,7 @@ pub struct Implementation {
 
 impl ToRust for Implementation {
     fn to_rust(&self) -> String {
-        let methods = self
-            .methods
-            .iter()
-            .map(|m| m.to_rust())
-            .collect::<Vec<_>>()
-            .join("");
+        let methods = self.methods.to_rust("");
         format!(
             "impl {} for {} {{{}}}",
             self.trait_name.to_rust(),
@@ -413,12 +377,7 @@ pub struct Trait {
 
 impl ToRust for Trait {
     fn to_rust(&self) -> String {
-        let signatures = self
-            .signatures
-            .iter()
-            .map(|s| s.to_rust())
-            .collect::<Vec<_>>()
-            .join("");
+        let signatures = self.signatures.to_rust("");
         format!("trait {} {{ {} }}", self.name.to_rust(), signatures)
     }
 }
