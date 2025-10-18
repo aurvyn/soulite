@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::{fmt::Write, string};
 
 pub trait ToRust {
     fn to_rust(&self) -> String;
@@ -363,6 +363,12 @@ impl ToRust for Function {
     }
 }
 
+pub struct Implementation {
+    pub struct_name: String,
+    pub trait_name: String,
+    pub methods: Vec<Function>,
+}
+
 type Field = (String, Type);
 
 pub struct Struct {
@@ -432,6 +438,7 @@ pub struct Program {
     pub imports: Vec<Import>,
     pub traits: Vec<Trait>,
     pub structs: Vec<Struct>,
+    pub impls: Vec<Implementation>,
     pub functions: Vec<Function>,
     pub variables: Vec<Expr>,
 }

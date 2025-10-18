@@ -2,8 +2,8 @@ use std::vec;
 
 use crate::{
     ast::{
-        AssignType, Equation, Expr, Function, Import, Literal, Pattern, Program, Struct, Trait,
-        Type, TypeSignature,
+        AssignType, Equation, Expr, Function, Implementation, Import, Literal, Pattern, Program,
+        Struct, Trait, Type, TypeSignature,
     },
     lexer::{CheckToken, Lookahead, Token},
 };
@@ -17,6 +17,7 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
         imports: vec![],
         traits: vec![],
         structs: vec![],
+        impls: vec![],
         functions: vec![],
         variables: vec![],
     };
@@ -67,7 +68,9 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                 };
                 match tok {
                     Some(Ok(Token::FatArrow)) => {
-                        // trait impl, not yet implemented
+                        program
+                            .impls
+                            .push(parse_impl(&mut lex, name, &generic_types)?)
                     }
                     Some(Ok(Token::Assign)) => {
                         program
@@ -120,7 +123,10 @@ fn parse_trait(
         name,
         signatures: vec![],
     };
-    while lex.next().is_newline() && lex.peek().is_tab() {
+    if !lex.next().is_newline() {
+        return err(lex, "newline after `:`");
+    }
+    while lex.peek().is_tab() {
         lex.next();
         if !lex.next().is_identifier() {
             return err(&lex, "method name after tab");
@@ -165,6 +171,37 @@ fn parse_struct(
         } else {
             return err(&lex, "field type");
         }
+    }
+    Ok(result)
+}
+
+fn parse_impl(
+    lex: &mut Lexer<Token>,
+    struct_name: String,
+    generic_types: &Vec<String>,
+) -> Result<Implementation, String> {
+    if !lex.next().is_type() {
+        return err(lex, "trait name after `=>`");
+    }
+    let mut result = Implementation {
+        struct_name,
+        trait_name: lex.slice().to_string(),
+        methods: vec![],
+    };
+    let mut tok;
+    while lex.peek().is_newline() && lex.lookahead().is_tab() {
+        lex.step();
+        if !lex.next().is_identifier() {
+            return err(&lex, "method name after tab");
+        }
+        let method_name = lex.slice().to_string();
+        tok = lex.next();
+        if tok != Some(Ok(Token::Pipe)) {
+            return err(&lex, "`|` after method name");
+        }
+        result
+            .methods
+            .push(parse_function(lex, method_name, &generic_types, 1)?);
     }
     Ok(result)
 }
