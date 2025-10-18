@@ -213,7 +213,7 @@ impl ToRust for Expr {
                     (value.to_rust_type(), value.to_rust())
                 };
                 format!(
-                    "{} {}{}:{}={}",
+                    "{} {}{}:{}={};",
                     assign_type.to_rust(),
                     if *mutable { "mut " } else { "" },
                     name,
@@ -462,55 +462,26 @@ pub struct Program {
 
 impl ToRust for Program {
     fn to_rust(&self) -> String {
-        let imports = self
+        let mut out = String::new();
+        let all = self
             .imports
             .iter()
-            .map(|i| i.to_rust())
-            .collect::<Vec<_>>()
-            .join("");
-        let traits = self
-            .traits
-            .iter()
-            .map(|t| t.to_rust())
-            .collect::<Vec<_>>()
-            .join("");
-        let structs = self
-            .structs
-            .iter()
-            .map(|s| s.to_rust())
-            .collect::<Vec<_>>()
-            .join("");
-        let impls = self
-            .impls
-            .iter()
-            .map(|i| i.to_rust())
-            .collect::<Vec<_>>()
-            .join("");
-        let functions = self
-            .functions
-            .iter()
-            .map(|f| f.to_rust())
-            .collect::<Vec<_>>()
-            .join("");
-        let variables = self
-            .variables
-            .iter()
-            .map(|v| format!("{};", v.to_rust()))
-            .collect::<Vec<_>>()
-            .join("");
-        format!(
-            "{}{}{}{}{}{}{}",
-            imports,
-            traits,
-            structs,
-            impls,
-            variables,
-            functions,
+            .map(|i| i as &dyn ToRust)
+            .chain(self.traits.iter().map(|t| t as &dyn ToRust))
+            .chain(self.structs.iter().map(|s| s as &dyn ToRust))
+            .chain(self.impls.iter().map(|i| i as &dyn ToRust))
+            .chain(self.variables.iter().map(|v| v as &dyn ToRust))
+            .chain(self.functions.iter().map(|f| f as &dyn ToRust));
+        for item in all {
+            out.push_str(&item.to_rust());
+        }
+        out.push_str(
             if self.functions.iter().any(|f| f.signature.name == "main") {
                 "fn main() {start(std::env::args().skip(1).collect())}"
             } else {
                 "fn main() {}"
-            }
-        )
+            },
+        );
+        out
     }
 }
