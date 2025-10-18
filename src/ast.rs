@@ -1,4 +1,4 @@
-use std::{fmt::Write, string};
+use std::fmt::Write;
 
 pub trait ToRust {
     fn to_rust(&self) -> String;
@@ -65,7 +65,7 @@ impl ToRust for Pattern {
                     .iter()
                     .map(|p| p.to_rust())
                     .collect::<Vec<_>>()
-                    .join(", ")
+                    .join(",")
             ),
             Pattern::Wildcard => "_".to_string(),
         }
@@ -77,7 +77,7 @@ impl ToRust for Vec<Pattern> {
         self.iter()
             .map(|pattern| pattern.to_rust())
             .collect::<Vec<_>>()
-            .join(", ")
+            .join(",")
     }
 }
 
@@ -230,7 +230,7 @@ impl ToRust for Vec<Expr> {
         self.iter()
             .map(|expr| expr.to_rust())
             .collect::<Vec<_>>()
-            .join("; ")
+            .join(";")
     }
 }
 
@@ -252,7 +252,7 @@ impl ToRust for Type {
             Type::String => "String".to_string(),
             Type::Reference(inner) => format!("&{}", inner.to_rust()),
             Type::List(inner) => format!("Vec<{}>", inner.to_rust()),
-            Type::Array(inner, size) => format!("[{}; {}]", inner.to_rust(), size),
+            Type::Array(inner, size) => format!("[{};{}]", inner.to_rust(), size),
             Type::Generic(name) => name.to_string(),
         }
     }
@@ -369,6 +369,23 @@ pub struct Implementation {
     pub methods: Vec<Function>,
 }
 
+impl ToRust for Implementation {
+    fn to_rust(&self) -> String {
+        let methods = self
+            .methods
+            .iter()
+            .map(|m| m.to_rust())
+            .collect::<Vec<_>>()
+            .join("");
+        format!(
+            "impl {} for {} {{{}}}",
+            self.trait_name.to_rust(),
+            self.struct_name.to_rust(),
+            methods
+        )
+    }
+}
+
 type Field = (String, Type);
 
 pub struct Struct {
@@ -451,10 +468,22 @@ impl ToRust for Program {
             .map(|i| i.to_rust())
             .collect::<Vec<_>>()
             .join("");
+        let traits = self
+            .traits
+            .iter()
+            .map(|t| t.to_rust())
+            .collect::<Vec<_>>()
+            .join("");
         let structs = self
             .structs
             .iter()
             .map(|s| s.to_rust())
+            .collect::<Vec<_>>()
+            .join("");
+        let impls = self
+            .impls
+            .iter()
+            .map(|i| i.to_rust())
             .collect::<Vec<_>>()
             .join("");
         let functions = self
@@ -470,9 +499,11 @@ impl ToRust for Program {
             .collect::<Vec<_>>()
             .join("");
         format!(
-            "{}{}{}{}{}",
+            "{}{}{}{}{}{}{}",
             imports,
+            traits,
             structs,
+            impls,
             variables,
             functions,
             if self.functions.iter().any(|f| f.signature.name == "main") {
