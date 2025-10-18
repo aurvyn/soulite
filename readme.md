@@ -40,6 +40,8 @@ printGreet | String
 	cout <| greet("Andy" "John")
 "what":
 	cout <| greet("Beta" "Alpha")
+else:
+	cout << "Unknown input: " <| else
 
 \ scenarios where pattern matching is more useful
 factorial | Int -> Int

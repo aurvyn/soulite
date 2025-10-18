@@ -1,7 +1,7 @@
 \ this is a comment by the way
 
 \ this imports `cout` from the standard library
-+std-cout
++std:cout
 
 myConst :: "this is a const variable"  \ only valid in global scope
 
@@ -23,6 +23,8 @@ printGreet | String
 	cout <| greet("Andy" "John")
 "what":
 	cout <| greet("Beta" "Alpha")
+else:
+	cout << "Unknown input: " <| else
 
 \ scenarios where pattern matching is more useful
 factorial | Int -> Int
