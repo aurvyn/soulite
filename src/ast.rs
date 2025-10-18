@@ -273,6 +273,25 @@ pub struct TypeSignature {
     pub return_types: Vec<Type>,
 }
 
+impl ToRust for TypeSignature {
+    fn to_rust(&self) -> String {
+        format!(
+            "fn {}({}) -> {};",
+            self.name.to_rust(),
+            self.arg_types
+                .iter()
+                .map(|t| format!("_: {}", t.to_rust()))
+                .collect::<Vec<_>>()
+                .join(", "),
+            match self.return_types.len() {
+                0 => "()".to_string(),
+                1 => self.return_types.to_rust(),
+                _ => format!("({})", self.return_types.to_rust()),
+            }
+        )
+    }
+}
+
 pub struct Equation {
     pub parameters_list: Vec<Pattern>,
     pub body: Vec<Expr>,
@@ -364,6 +383,23 @@ impl ToRust for Struct {
     }
 }
 
+pub struct Trait {
+    pub name: String,
+    pub signatures: Vec<TypeSignature>,
+}
+
+impl ToRust for Trait {
+    fn to_rust(&self) -> String {
+        let signatures = self
+            .signatures
+            .iter()
+            .map(|s| s.to_rust())
+            .collect::<Vec<_>>()
+            .join("");
+        format!("trait {} {{ {} }}", self.name.to_rust(), signatures)
+    }
+}
+
 pub struct Import {
     pub filename: String,
     pub items: Vec<String>,
@@ -394,6 +430,7 @@ impl ToRust for Import {
 
 pub struct Program {
     pub imports: Vec<Import>,
+    pub traits: Vec<Trait>,
     pub structs: Vec<Struct>,
     pub functions: Vec<Function>,
     pub variables: Vec<Expr>,

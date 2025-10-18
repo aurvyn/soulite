@@ -2,8 +2,8 @@ use std::vec;
 
 use crate::{
     ast::{
-        AssignType, Equation, Expr, Function, Import, Literal, Pattern, Program, Struct, Type,
-        TypeSignature,
+        AssignType, Equation, Expr, Function, Import, Literal, Pattern, Program, Struct, Trait,
+        Type, TypeSignature,
     },
     lexer::{CheckToken, Lookahead, Token},
 };
@@ -15,6 +15,7 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
     let mut lex = Token::lexer(&soulite_source);
     let mut program = Program {
         imports: vec![],
+        traits: vec![],
         structs: vec![],
         functions: vec![],
         variables: vec![],
@@ -54,7 +55,33 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                     _ => return err(&lex, "variable or function marker"),
                 }
             }
-            Token::Type => program.structs.push(parse_struct(&mut lex)?),
+            Token::Type => {
+                let name = lex.slice().to_string();
+                let mut tok = lex.next();
+                let generic_types = if tok == Some(Ok(Token::LessThan)) {
+                    let result = parse_generic_types(&mut lex)?;
+                    tok = lex.next();
+                    result
+                } else {
+                    vec![]
+                };
+                match tok {
+                    Some(Ok(Token::FatArrow)) => {
+                        // trait impl, not yet implemented
+                    }
+                    Some(Ok(Token::Assign)) => {
+                        program
+                            .structs
+                            .push(parse_struct(&mut lex, name, &generic_types)?)
+                    }
+                    Some(Ok(Token::Colon)) => {
+                        program
+                            .traits
+                            .push(parse_trait(&mut lex, name, &generic_types)?)
+                    }
+                    _ => return err(&lex, "colon, arrow, or generic type after struct name"),
+                }
+            }
             _ => return err(&lex, "import or declaration"),
         }
     }
@@ -84,28 +111,43 @@ fn parse_import(lex: &mut Lexer<Token>) -> Result<Import, String> {
     Ok(import)
 }
 
-fn parse_struct(lex: &mut Lexer<Token>) -> Result<Struct, String> {
+fn parse_trait(
+    lex: &mut Lexer<Token>,
+    name: String,
+    generic_types: &Vec<String>,
+) -> Result<Trait, String> {
+    let mut result = Trait {
+        name,
+        signatures: vec![],
+    };
+    while lex.next().is_newline() && lex.peek().is_tab() {
+        lex.next();
+        if !lex.next().is_identifier() {
+            return err(&lex, "method name after tab");
+        }
+        let method_name = lex.slice().to_string();
+        if lex.next() != Some(Ok(Token::Pipe)) {
+            return err(&lex, "`|` after method name");
+        }
+        result
+            .signatures
+            .push(parse_signature(lex, method_name, generic_types)?);
+    }
+    Ok(result)
+}
+
+fn parse_struct(
+    lex: &mut Lexer<Token>,
+    name: String,
+    generic_types: &Vec<String>,
+) -> Result<Struct, String> {
     let mut result = Struct {
-        name: lex.slice().to_string(),
+        name,
         fields: vec![],
         methods: vec![],
     };
-    let mut tok = lex.next();
-    let generic_types = if tok == Some(Ok(Token::LessThan)) {
-        let result = parse_generic_types(lex)?;
-        tok = lex.next();
-        result
-    } else {
-        vec![]
-    };
-    match tok {
-        Some(Ok(Token::FatArrow)) => {
-            // trait impl, not yet implemented
-        }
-        Some(Ok(Token::Assign)) => {}
-        _ => return err(&lex, "colon, arrow, or generic type after struct name"),
-    }
-    while lex.next().is_newline() && lex.lookahead().is_tab() {
+    let mut tok;
+    while lex.peek().is_newline() && lex.lookahead().is_tab() {
         lex.step();
         if !lex.next().is_identifier() {
             return err(&lex, "field name after tab");
@@ -127,25 +169,19 @@ fn parse_struct(lex: &mut Lexer<Token>) -> Result<Struct, String> {
     Ok(result)
 }
 
-fn parse_function(
+fn parse_signature(
     lex: &mut Lexer<Token>,
     name: String,
     generic_types: &Vec<String>,
-    indent: usize,
-) -> Result<Function, String> {
-    let mut func = Function {
-        signature: TypeSignature {
-            name,
-            arg_types: vec![],
-            return_types: vec![],
-        },
-        equations: vec![],
+) -> Result<TypeSignature, String> {
+    let mut signature = TypeSignature {
+        name,
+        arg_types: vec![],
+        return_types: vec![],
     };
     let mut tok = lex.next();
     while tok.is_type() {
-        func.signature
-            .arg_types
-            .push(parse_type(lex, generic_types)?);
+        signature.arg_types.push(parse_type(lex, generic_types)?);
         tok = lex.next();
     }
     if !tok.is_newline() {
@@ -153,11 +189,22 @@ fn parse_function(
             return err(lex, "`->` after argument types");
         }
         while lex.next().is_type() {
-            func.signature
-                .return_types
-                .push(parse_type(lex, generic_types)?);
+            signature.return_types.push(parse_type(lex, generic_types)?);
         }
     }
+    Ok(signature)
+}
+
+fn parse_function(
+    lex: &mut Lexer<Token>,
+    name: String,
+    generic_types: &Vec<String>,
+    indent: usize,
+) -> Result<Function, String> {
+    let mut func = Function {
+        signature: parse_signature(lex, name, generic_types)?,
+        equations: vec![],
+    };
     if func.signature.arg_types.is_empty() {
         let mut body = vec![];
         lex.step_before();
