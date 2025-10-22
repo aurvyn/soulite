@@ -114,7 +114,7 @@ main | [String]
 []: cout <| "Usage: <exe_name> [-h] <command> <..args>"
 ["fac" n]: cout <| factorial_tail(n.parse().unwrap() 1)
 ["people"]:
-	john, Person("John" 21 ["car keys" "credit card"])
+	john := Person("John" 21 ["car keys" "credit card"])
 	john.grow_up(3)
 	cout <| john.age  \ should print "24"
 ["-h" "fac"]:
