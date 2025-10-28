@@ -159,6 +159,6 @@ The main function acts as the "main" function that you might see in other langua
 	- [ ] Generic Types
 	- [ ] Self field reference
 - [ ] Features
-  - [ ] Ternary if-statement
+  - [ ] Ternary conditional (`var <- conditional ; else`)
   - [ ] `Option` data type (`||` = `None`, `|var|` = `Some(var)`, `Type?` = `Option<Type>`)
   - [ ] `Result` data type (`var!` = `Ok(var)`, `err'` = `Err(err)`, `Expected!Err` = `Result<Expected, Err>`)
