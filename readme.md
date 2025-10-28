@@ -142,6 +142,7 @@ The main function acts as the "main" function that you might see in other langua
 	- [x] Literals
 	- [x] Variables
 	- [x] Wildcards
+  	- [ ] Guards (Haskell)
 	- [ ] Record pattern (Haskell)
 	- [ ] As pattern (Haskell)
 	- [ ] Generic Types
@@ -157,3 +158,7 @@ The main function acts as the "main" function that you might see in other langua
   - [ ] Implementation for structs
 	- [ ] Generic Types
 	- [ ] Self field reference
+- [ ] Features
+  - [ ] Ternary if-statement
+  - [ ] `Option` data type (`||` = `None`, `|var|` = `Some(var)`, `Type?` = `Option<Type>`)
+  - [ ] `Result` data type (`var!` = `Ok(var)`, `err'` = `Err(err)`, `Expected!Err` = `Result<Expected, Err>`)
