@@ -16,7 +16,7 @@ Person<T> =
 Animal:
 	grow_up | Int -> Int
 
-Person => Animal
+Person<T> => Animal
 	grow_up | Int -> Int
 	years:
 		.age += years

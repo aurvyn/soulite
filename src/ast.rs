@@ -228,13 +228,13 @@ pub enum Type {
 impl ToRust for Type {
     fn to_rust(&self) -> String {
         match self {
-            Type::Integer => "i64".to_string(),
-            Type::Float => "f64".to_string(),
-            Type::String => "String".to_string(),
+            Type::Integer => String::from("i64"),
+            Type::Float => String::from("f64"),
+            Type::String => String::from("String"),
             Type::Reference(inner) => format!("&{}", inner.to_rust()),
             Type::List(inner) => format!("Vec<{}>", inner.to_rust()),
             Type::Array(inner, size) => format!("[{};{}]", inner.to_rust(), size),
-            Type::Generic(name) => name.to_string(),
+            Type::Generic(name) => name.to_rust(),
         }
     }
 }
@@ -243,13 +243,15 @@ pub struct TypeSignature {
     pub name: String,
     pub arg_types: Vec<Type>,
     pub return_types: Vec<Type>,
+    pub is_method: bool,
 }
 
 impl ToRust for TypeSignature {
     fn to_rust(&self) -> String {
         format!(
-            "fn {}({}) -> {};",
+            "fn {}({}{}) -> {};",
             self.name.to_rust(),
+            if self.is_method { "&mut self," } else { "" },
             self.arg_types
                 .iter()
                 .map(|t| format!("_: {}", t.to_rust()))
@@ -272,7 +274,6 @@ pub struct Equation {
 pub struct Function {
     pub signature: TypeSignature,
     pub equations: Vec<Equation>,
-    pub is_method: bool,
 }
 
 impl ToRust for Function {
@@ -306,7 +307,11 @@ impl ToRust for Function {
         let mut head = format!(
             "fn {}({}{})",
             func_name,
-            if self.is_method { "&self," } else { "" },
+            if self.signature.is_method {
+                "&mut self,"
+            } else {
+                ""
+            },
             param.join(",")
         );
         let ret = signature.return_types.to_rust(",");
@@ -344,16 +349,24 @@ impl ToRust for Function {
 pub struct Implementation {
     pub struct_name: String,
     pub trait_name: String,
+    pub generic_types: Vec<String>,
     pub methods: Vec<Function>,
 }
 
 impl ToRust for Implementation {
     fn to_rust(&self) -> String {
         let methods = self.methods.to_rust("");
+        let generic_types = if self.generic_types.is_empty() {
+            String::new()
+        } else {
+            format!("<{}>", self.generic_types.to_rust(","))
+        };
         format!(
-            "impl {} for {} {{{}}}",
+            "impl{} {} for {}{} {{{}}}",
+            generic_types,
             self.trait_name.to_rust(),
             self.struct_name.to_rust(),
+            generic_types,
             methods
         )
     }
@@ -363,6 +376,7 @@ type Field = (String, Type);
 
 pub struct Struct {
     pub name: String,
+    pub generic_types: Vec<String>,
     pub fields: Vec<Field>,
     pub methods: Vec<Function>,
 }
@@ -375,7 +389,24 @@ impl ToRust for Struct {
             .map(|(name, kind)| format!("{}: {}", name.to_rust(), kind.to_rust()))
             .collect::<Vec<_>>()
             .join(", ");
-        format!("struct {} {{ {} }}", self.name.to_rust(), fields)
+        let name = self.name.to_rust();
+        let generic_types = if self.generic_types.is_empty() {
+            String::new()
+        } else {
+            format!("<{}>", self.generic_types.to_rust(","))
+        };
+        let base = format!("struct {}{} {{{}}}", name, generic_types, fields);
+        if self.methods.is_empty() {
+            return base;
+        }
+        format!(
+            "{} impl{} {}{} {{{}}}",
+            base,
+            generic_types,
+            name,
+            generic_types,
+            self.methods.to_rust("")
+        )
     }
 }
 
@@ -387,7 +418,7 @@ pub struct Trait {
 impl ToRust for Trait {
     fn to_rust(&self) -> String {
         let signatures = self.signatures.to_rust("");
-        format!("trait {} {{ {} }}", self.name.to_rust(), signatures)
+        format!("trait {} {{{}}}", self.name.to_rust(), signatures)
     }
 }
 
