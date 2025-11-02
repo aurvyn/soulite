@@ -119,10 +119,7 @@ fn parse_trait(
     name: String,
     generic_types: Vec<String>,
 ) -> Result<Trait, String> {
-    let mut result = Trait {
-        name,
-        signatures: vec![],
-    };
+    let mut signatures = vec![];
     if !lex.next().is_newline() {
         return err(lex, "newline after `:`");
     }
@@ -135,11 +132,13 @@ fn parse_trait(
         if lex.next() != Some(Ok(Token::Pipe)) {
             return err(&lex, "`|` after method name");
         }
-        result
-            .signatures
-            .push(parse_signature(lex, method_name, &generic_types, true)?);
+        signatures.push(parse_signature(lex, method_name, &generic_types, true)?);
     }
-    Ok(result)
+    Ok(Trait {
+        name,
+        generic_types,
+        signatures,
+    })
 }
 
 fn parse_struct(

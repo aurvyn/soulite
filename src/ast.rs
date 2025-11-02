@@ -412,13 +412,24 @@ impl ToRust for Struct {
 
 pub struct Trait {
     pub name: String,
+    pub generic_types: Vec<String>,
     pub signatures: Vec<TypeSignature>,
 }
 
 impl ToRust for Trait {
     fn to_rust(&self) -> String {
         let signatures = self.signatures.to_rust("");
-        format!("trait {} {{{}}}", self.name.to_rust(), signatures)
+        let generic_types = if self.generic_types.is_empty() {
+            String::new()
+        } else {
+            format!("<{}>", self.generic_types.to_rust(","))
+        };
+        format!(
+            "trait {}{} {{{}}}",
+            self.name.to_rust(),
+            generic_types,
+            signatures
+        )
     }
 }
 
