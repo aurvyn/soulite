@@ -146,18 +146,18 @@ The main function acts as the "main" function that you might see in other langua
 	- [ ] Record pattern (Haskell)
 	- [ ] As pattern (Haskell)
 	- [ ] Generic Types
-- [ ] Structs
+- [x] Structs
   - [x] Fields
   - [x] Generic Types
-  - [ ] Methods
+  - [x] Methods
     - [x] Generic Types
-	- [ ] Self field reference
-- [ ] Traits
-  - [ ] Method declaration
-  - [ ] Generic Types
-  - [ ] Implementation for structs
-	- [ ] Generic Types
-	- [ ] Self field reference
+	- [x] Self field reference
+- [x] Traits
+  - [x] Method declaration
+  - [x] Generic Types
+  - [x] Implementation for structs
+	- [x] Generic Types
+	- [x] Self field reference
 - [ ] Features
   - [ ] Ternary conditional (`var <- conditional ; else`)
   - [ ] `Option` data type (`||` = `None`, `|var|` = `Some(var)`, `Type?` = `Option<Type>`)
