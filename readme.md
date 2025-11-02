@@ -89,10 +89,10 @@ Person<T> =
 	items T[2]
 
 	add_item | T
-	item: self.items << item
+	item: .items << item
 
 	get_items |-> @T[2]
-		@items
+		@.items
 
 \ simple trait
 Animal:
@@ -102,8 +102,8 @@ Animal:
 Person => Animal
 	grow_up | Int -> Int
 	years:
-		age += years
-		age
+		.age += years
+		.age
 ```
 
 This is where it gets similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `Person => Animal` as "implement Animal for Person".
