@@ -99,7 +99,7 @@ Animal:
 	grow_up | Int -> Int
 
 \ implement trait for Person
-Person => Animal
+Person<T> => Animal
 	grow_up | Int -> Int
 	years:
 		.age += years
