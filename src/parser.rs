@@ -343,7 +343,11 @@ fn parse_assignment(
 }
 
 fn parse_expression(lex: &mut Lexer<Token>) -> Result<Expr, String> {
-    let lhs = parse_primary(lex)?;
+    let lhs = if lex.peek() == Some(Ok(Token::Dot)) {
+        Expr::This
+    } else {
+        parse_primary(lex)?
+    };
     parse_binary_expression(lex, lhs, 1)
 }
 

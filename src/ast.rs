@@ -98,6 +98,7 @@ impl ToRust for AssignType {
 
 #[derive(Clone)]
 pub enum Expr {
+    This,
     Reference(Box<Expr>),
     List(Vec<Expr>),
     Literal(Literal),
@@ -122,6 +123,7 @@ pub enum Expr {
 impl Expr {
     fn to_rust_type(&self) -> String {
         match self {
+            Expr::This => String::from("Self"),
             Expr::Reference(inner) => format!("&{}", inner.to_rust_type()),
             Expr::List(items) => format!(
                 "Vec<{}>",
@@ -146,6 +148,7 @@ impl Expr {
 impl ToRust for Expr {
     fn to_rust(&self) -> String {
         match self {
+            Expr::This => String::from("self"),
             Expr::Reference(inner) => format!("&{}", inner.to_rust()),
             Expr::List(items) => format!("vec![{}]", items.to_rust(",")),
             Expr::Literal(lit) => lit.to_rust(),
