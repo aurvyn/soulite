@@ -32,25 +32,32 @@ struct Cli {
 fn main() -> Result<(), String> {
     let cli = Cli::parse();
     let soulite_tree = parser::parse::<false>(&cli.soulite_file)?;
-    let rust_tree = syn::parse_file(&soulite_tree.to_rust()).unwrap();
+    let rust_tree = syn::parse_file(&soulite_tree.to_rust())
+        .map_err(|e| format!("Failed to parse Soulite file:\n{}", e))?;
     let rust_code = prettyplease::unparse(&rust_tree);
     let rust_file = cli
         .transpile
         .unwrap_or_else(|| cli.soulite_file.replace(".sl", ".rs"));
-    let mut file = File::create(&rust_file).map_err(|e| format!("{}", e))?;
+    let mut file =
+        File::create(&rust_file).map_err(|e| format!("Failed to create rust file:\n{}", e))?;
     file.write_all(rust_code.as_bytes())
-        .map_err(|e| format!("Failed to write to output file: {}", e))?;
-    if let Some(file_name) = cli.compile
-        && Command::new("rustc")
+        .map_err(|e| format!("Failed to write to rust file:\n{}", e))?;
+    if let Some(file_name) = cli.compile {
+        let output = Command::new("rustc")
+            .arg("--color=always")
             .arg(rust_file)
             .arg("-o")
             .arg(&file_name)
             .output()
-            .unwrap()
-            .status
-            .success()
-    {
-        println!("Compiled successfully to `{}`.", file_name)
+            .map_err(|e| format!("Failed to execute rustc:\n{}", e))?;
+        if output.status.success() {
+            println!("Compiled successfully to `{}`.", file_name);
+        } else {
+            eprintln!(
+                "Compilation failed:\n{}",
+                String::from_utf8(output.stderr).unwrap()
+            );
+        }
     }
     Ok(())
 }
