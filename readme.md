@@ -91,8 +91,8 @@ Person<T> =
 	add_item | T
 	item: .items << item
 
-	get_items |-> @T[2]
-		@.items
+	get_items |-> *T[2]
+		*.items
 
 \ simple trait
 Animal:
