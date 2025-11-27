@@ -76,10 +76,10 @@ pub enum Token {
     Minus,
 
     #[token("*")]
-    Multiply,
+    Star,
 
     #[token("/")]
-    Divide,
+    Slash,
 
     #[token("%")]
     Modulo,
@@ -228,7 +228,7 @@ impl Token {
             | Token::NotEqual => 7,
             Token::ShiftLeft | Token::ShiftRight | Token::PipeLeft | Token::PipeRight => 8,
             Token::Plus | Token::Minus => 9,
-            Token::Multiply | Token::Divide | Token::Modulo => 10,
+            Token::Star | Token::Slash | Token::Modulo => 10,
             Token::Exponent => 11,
             Token::Dot => 12,
             _ => 0,
@@ -270,7 +270,7 @@ impl CheckToken for Option<Result<Token, ()>> {
     fn is_type(&self) -> bool {
         self == &Some(Ok(Token::Type))
             || self == &Some(Ok(Token::LeftBracket))
-            || self == &Some(Ok(Token::At))
+            || self == &Some(Ok(Token::Star))
     }
 
     fn is_integer(&self) -> bool {

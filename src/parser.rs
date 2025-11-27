@@ -363,7 +363,7 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
             Token::Float => parse_literal(lex, &tok),
             Token::Integer => parse_literal(lex, &tok),
             Token::String => parse_literal(lex, &tok),
-            Token::At => {
+            Token::Star => {
                 let expr = parse_expression(lex)?;
                 Ok(Expr::Reference(Box::new(expr)))
             }
@@ -402,9 +402,9 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
             }
             Type::List(Box::new(inner_type))
         }
-        "@" => {
+        "*" => {
             if !lex.next().is_type() {
-                return err(lex, "type after `@`");
+                return err(lex, "type after `*`");
             }
             let inner_type = parse_type(lex, generic_types)?;
             Type::Reference(Box::new(inner_type))
