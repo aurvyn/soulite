@@ -6,6 +6,6 @@ my_const :: 3.14
 
 my_int :- 32
 
-my_str := "this is a string"
+my_str := "this is a string" <- 1 == 1 ; "unreachable"
 
 \ end

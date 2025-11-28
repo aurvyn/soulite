@@ -123,6 +123,9 @@ pub enum Token {
     #[token(":")]
     Colon,
 
+    #[token(";")]
+    Semicolon,
+
     #[token("~")]
     Tilde,
 
@@ -146,6 +149,9 @@ pub enum Token {
 
     #[token("'")]
     Apostrophe,
+
+    #[token("<-")]
+    If,
 
     #[token("->")]
     Arrow,
@@ -240,10 +246,12 @@ pub trait CheckToken {
     fn is_arrow(&self) -> bool;
     fn is_colon(&self) -> bool;
     fn is_identifier(&self) -> bool;
+    fn is_if(&self) -> bool;
+    fn is_integer(&self) -> bool;
     fn is_newline(&self) -> bool;
+    fn is_semicolon(&self) -> bool;
     fn is_tab(&self) -> bool;
     fn is_type(&self) -> bool;
-    fn is_integer(&self) -> bool;
 }
 
 impl CheckToken for Option<Result<Token, ()>> {
@@ -259,8 +267,20 @@ impl CheckToken for Option<Result<Token, ()>> {
         self == &Some(Ok(Token::Identifier))
     }
 
+    fn is_if(&self) -> bool {
+        self == &Some(Ok(Token::If))
+    }
+
+    fn is_integer(&self) -> bool {
+        self == &Some(Ok(Token::Integer))
+    }
+
     fn is_newline(&self) -> bool {
         self == &Some(Ok(Token::Newline))
+    }
+
+    fn is_semicolon(&self) -> bool {
+        self == &Some(Ok(Token::Semicolon))
     }
 
     fn is_tab(&self) -> bool {
@@ -271,10 +291,6 @@ impl CheckToken for Option<Result<Token, ()>> {
         self == &Some(Ok(Token::Type))
             || self == &Some(Ok(Token::LeftBracket))
             || self == &Some(Ok(Token::Star))
-    }
-
-    fn is_integer(&self) -> bool {
-        self == &Some(Ok(Token::Integer))
     }
 }
 

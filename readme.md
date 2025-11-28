@@ -75,6 +75,12 @@ Similar to `<<`, except that it acts as a "closing version". This means that thi
 > cout <| "Hello World!"
 > ```
 
+## Ternary Conditional
+Use `<-` with `;` to choose between two expressions inline. It reads as `true-body <- condition ; false-body`:
+```
+response := "ready" <- is_ready ; "not yet"
+```
+
 ## Structs and Traits
 ```
 \ simple struct
@@ -159,6 +165,6 @@ The main function acts as the "main" function that you might see in other langua
 	- [x] Generic Types
 	- [x] Self field reference
 - [ ] Features
-  - [ ] Ternary conditional (`true-body <- cond : false-body`)
+  - [x] Ternary conditional (`true-body <- cond ; false-body`)
   - [ ] `Option` data type (`||` = `None`, `|var|` = `Some(var)`, `Type?` = `Option<Type>`)
   - [ ] `Result` data type (`var!` = `Ok(var)`, `err'` = `Err(err)`, `Expected!Err` = `Result<Expected, Err>`)

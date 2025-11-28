@@ -346,7 +346,8 @@ fn parse_expression(lex: &mut Lexer<Token>) -> Result<Expr, String> {
     } else {
         parse_primary(lex)?
     };
-    parse_binary_expression(lex, lhs, 1)
+    let expr = parse_binary_expression(lex, lhs, 1)?;
+    parse_ternary_expression(lex, expr)
 }
 
 fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
@@ -527,6 +528,23 @@ fn parse_binary_expression(
         };
     }
     Ok(lhs)
+}
+
+fn parse_ternary_expression(lex: &mut Lexer<Token>, mut expr: Expr) -> Result<Expr, String> {
+    while lex.peek().is_if() {
+        lex.next();
+        let condition = parse_expression(lex)?;
+        if !lex.next().is_semicolon() {
+            return err(lex, "`;` after ternary condition");
+        }
+        let if_false = parse_expression(lex)?;
+        expr = Expr::Ternary {
+            condition: Box::new(condition),
+            if_true: Box::new(expr),
+            if_false: Box::new(if_false),
+        };
+    }
+    Ok(expr)
 }
 
 fn err<T>(lex: &Lexer<Token>, expect: &str) -> Result<T, String> {

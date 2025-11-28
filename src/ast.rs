@@ -108,6 +108,11 @@ pub enum Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+    Ternary {
+        condition: Box<Expr>,
+        if_true: Box<Expr>,
+        if_false: Box<Expr>,
+    },
     Call {
         callee: String,
         args: Vec<Expr>,
@@ -134,6 +139,11 @@ impl Expr {
             Expr::Literal(lit) => lit.to_rust_type(),
             Expr::Variable(_) => "_".to_string(),
             Expr::Binary { op: _, lhs, rhs: _ } => lhs.to_rust_type(),
+            Expr::Ternary {
+                condition: _,
+                if_true,
+                if_false: _,
+            } => if_true.to_rust_type(),
             Expr::Call { callee: _, args: _ } => "_".to_string(),
             Expr::Assign {
                 name: _,
@@ -183,6 +193,16 @@ impl ToRust for Expr {
                 }
                 _ => format!("{}{}{}", lhs.to_rust(), op, rhs.to_rust()),
             },
+            Expr::Ternary {
+                condition,
+                if_true,
+                if_false,
+            } => format!(
+                "if {} {{{}}} else {{{}}}",
+                condition.to_rust(),
+                if_true.to_rust(),
+                if_false.to_rust()
+            ),
             Expr::Call { callee, args } => format!(
                 "{}({}{})",
                 if callee == "main" { "start" } else { &callee },
