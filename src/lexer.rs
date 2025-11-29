@@ -31,7 +31,7 @@ pub enum Token {
     And,
 
     #[token("||")]
-    Or,
+    DoublePipe,
 
     #[token("&")]
     Amp,
@@ -93,6 +93,9 @@ pub enum Token {
     #[token("!")]
     Not,
 
+    #[token("?")]
+    Eroteme,
+
     #[token("(")]
     LeftParen,
 
@@ -116,6 +119,12 @@ pub enum Token {
 
     #[token(">]")]
     RightList,
+
+    #[token("(|")]
+    LeftSome,
+
+    #[token("|)")]
+    RightSome,
 
     #[token(",")]
     Comma,
@@ -222,7 +231,7 @@ impl Token {
             | Token::ShiftLeftAssign
             | Token::PipeLeftAssign => 1,
             Token::Range => 2,
-            Token::And | Token::Or => 3,
+            Token::And | Token::DoublePipe => 3,
             Token::Pipe => 4,
             Token::Caret => 5,
             Token::Amp => 6,
@@ -245,10 +254,13 @@ impl Token {
 pub trait CheckToken {
     fn is_arrow(&self) -> bool;
     fn is_colon(&self) -> bool;
+    fn is_eroteme(&self) -> bool;
     fn is_identifier(&self) -> bool;
     fn is_if(&self) -> bool;
     fn is_integer(&self) -> bool;
     fn is_newline(&self) -> bool;
+    fn is_right_paren(&self) -> bool;
+    fn is_right_some(&self) -> bool;
     fn is_semicolon(&self) -> bool;
     fn is_tab(&self) -> bool;
     fn is_type(&self) -> bool;
@@ -261,6 +273,10 @@ impl CheckToken for Option<Result<Token, ()>> {
 
     fn is_colon(&self) -> bool {
         self == &Some(Ok(Token::Colon))
+    }
+
+    fn is_eroteme(&self) -> bool {
+        self == &Some(Ok(Token::Eroteme))
     }
 
     fn is_identifier(&self) -> bool {
@@ -277,6 +293,14 @@ impl CheckToken for Option<Result<Token, ()>> {
 
     fn is_newline(&self) -> bool {
         self == &Some(Ok(Token::Newline))
+    }
+
+    fn is_right_paren(&self) -> bool {
+        self == &Some(Ok(Token::RightParen))
+    }
+
+    fn is_right_some(&self) -> bool {
+        self == &Some(Ok(Token::RightSome))
     }
 
     fn is_semicolon(&self) -> bool {

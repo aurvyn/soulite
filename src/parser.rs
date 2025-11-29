@@ -383,6 +383,19 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
                 lex.next();
                 Ok(Expr::List(elements))
             }
+            Token::LeftSome => {
+                if lex.peek().is_right_paren() {
+                    lex.next();
+                    Ok(Expr::None)
+                } else {
+                    let inner = parse_expression(lex)?;
+                    if !lex.next().is_right_some() {
+                        err(lex, "closing `|)` after Some inner expression")?
+                    } else {
+                        Ok(Expr::Some(Box::new(inner)))
+                    }
+                }
+            }
             Token::Comment => parse_primary(lex),
             _ => err(lex, "primary expression"),
         }
@@ -392,7 +405,7 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
 }
 
 fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Type, String> {
-    Ok(match lex.slice() {
+    let result = match lex.slice() {
         "[" => {
             if !lex.next().is_type() {
                 return err(lex, "type after `[`");
@@ -431,6 +444,12 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
             }
             result
         }
+    };
+    Ok(if lex.peek().is_eroteme() {
+        lex.next();
+        Type::Option(Box::new(result))
+    } else {
+        result
     })
 }
 

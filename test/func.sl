@@ -3,15 +3,19 @@
 mySimpleFunc |-> String
 	"this is a function with no parameters and returns a string"
 
-greet | String String -> String
+greet | String String -> String?
+"Tom" "Jerry":
+	(|)
 theirName myName:
-	"Hello {theirName}! My name is {myName}."
+	(|"Hello {theirName}! My name is {myName}."|)
 
 printGreet | String
 "simple":
-	cout <| greet("Andy" "John")
+	result := greet("Andy" "John").unwrap()
+	cout <| result
 "what":
-	cout <| greet("Beta" "Alpha")
+	result := greet("Beta" "Alpha").unwrap()
+	cout <| result
 else:
 	cout << "Unknown input: " <| else
 

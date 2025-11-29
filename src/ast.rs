@@ -99,10 +99,12 @@ impl ToRust for AssignType {
 #[derive(Clone)]
 pub enum Expr {
     This,
+    None,
     Reference(Box<Expr>),
     List(Vec<Expr>),
     Literal(Literal),
     Variable(String),
+    Some(Box<Expr>),
     Binary {
         op: String,
         lhs: Box<Expr>,
@@ -129,6 +131,7 @@ impl Expr {
     fn to_rust_type(&self) -> String {
         match self {
             Expr::This => String::from("Self"),
+            Expr::None => String::from("Option<_>"),
             Expr::Reference(inner) => format!("&{}", inner.to_rust_type()),
             Expr::List(items) => format!(
                 "Vec<{}>",
@@ -137,14 +140,15 @@ impl Expr {
                     .map_or("()".to_string(), |item| item.to_rust_type())
             ),
             Expr::Literal(lit) => lit.to_rust_type(),
-            Expr::Variable(_) => "_".to_string(),
+            Expr::Variable(_) => String::from("_"),
+            Expr::Some(expr) => format!("Option<{}>", expr.to_rust_type()),
             Expr::Binary { op: _, lhs, rhs: _ } => lhs.to_rust_type(),
             Expr::Ternary {
                 condition: _,
                 if_true,
                 if_false: _,
             } => if_true.to_rust_type(),
-            Expr::Call { callee: _, args: _ } => "_".to_string(),
+            Expr::Call { callee: _, args: _ } => String::from("_"),
             Expr::Assign {
                 name: _,
                 assign_type: _,
@@ -159,10 +163,12 @@ impl ToRust for Expr {
     fn to_rust(&self) -> String {
         match self {
             Expr::This => String::from("self"),
+            Expr::None => String::from("None"),
             Expr::Reference(inner) => format!("&{}", inner.to_rust()),
             Expr::List(items) => format!("vec![{}]", items.to_rust(",")),
             Expr::Literal(lit) => lit.to_rust(),
             Expr::Variable(name) => name.to_rust(),
+            Expr::Some(expr) => format!("Some({})", expr.to_rust()),
             Expr::Binary { op, lhs, rhs } => match op.as_str() {
                 "<<" | "<|" => {
                     let write_func = if op == "<<" { "" } else { "ln" };
@@ -242,6 +248,7 @@ pub enum Type {
     Reference(Box<Type>),
     List(Box<Type>),
     Array(Box<Type>, usize),
+    Option(Box<Type>),
     Generic(String),
 }
 
@@ -254,6 +261,7 @@ impl ToRust for Type {
             Type::Reference(inner) => format!("&{}", inner.to_rust()),
             Type::List(inner) => format!("Vec<{}>", inner.to_rust()),
             Type::Array(inner, size) => format!("[{};{}]", inner.to_rust(), size),
+            Type::Option(inner) => format!("Option<{}>", inner.to_rust()),
             Type::Generic(name) => name.to_rust(),
         }
     }
