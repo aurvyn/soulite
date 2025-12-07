@@ -91,7 +91,7 @@ pub enum Token {
     Dot,
 
     #[token("!")]
-    Not,
+    Bang,
 
     #[token("?")]
     Eroteme,
@@ -157,7 +157,7 @@ pub enum Token {
     Dollar,
 
     #[token("'")]
-    Apostrophe,
+    Tick,
 
     #[token("<-")]
     If,
@@ -254,7 +254,6 @@ impl Token {
 pub trait CheckToken {
     fn is_arrow(&self) -> bool;
     fn is_colon(&self) -> bool;
-    fn is_eroteme(&self) -> bool;
     fn is_identifier(&self) -> bool;
     fn is_if(&self) -> bool;
     fn is_integer(&self) -> bool;
@@ -273,10 +272,6 @@ impl CheckToken for Option<Result<Token, ()>> {
 
     fn is_colon(&self) -> bool {
         self == &Some(Ok(Token::Colon))
-    }
-
-    fn is_eroteme(&self) -> bool {
-        self == &Some(Ok(Token::Eroteme))
     }
 
     fn is_identifier(&self) -> bool {

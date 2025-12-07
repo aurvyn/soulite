@@ -351,29 +351,31 @@ fn parse_expression(lex: &mut Lexer<Token>) -> Result<Expr, String> {
 }
 
 fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
-    if let Some(Ok(tok)) = lex.next() {
+    let mut result = if let Some(Ok(tok)) = lex.next() {
         match tok {
             Token::Identifier => {
                 let name = lex.slice().to_string();
                 if lex.peek() != Some(Ok(Token::Colon)) {
-                    return parse_identifier(lex, name);
+                    parse_identifier(lex, name)?
+                } else {
+                    lex.next();
+                    parse_assignment(lex, name, AssignType::Normal)?
                 }
-                lex.next();
-                parse_assignment(lex, name, AssignType::Normal)
             }
-            Token::Float => parse_literal(lex, &tok),
-            Token::Integer => parse_literal(lex, &tok),
-            Token::String => parse_literal(lex, &tok),
+            Token::Float => parse_literal(lex, &tok)?,
+            Token::Integer => parse_literal(lex, &tok)?,
+            Token::String => parse_literal(lex, &tok)?,
             Token::Star => {
                 let expr = parse_expression(lex)?;
-                Ok(Expr::Reference(Box::new(expr)))
+                Expr::Reference(Box::new(expr))
             }
             Token::LeftParen => {
                 let expr = parse_expression(lex)?;
                 if lex.next() != Some(Ok(Token::RightParen)) {
-                    return err(lex, "closing parenthesis `)`");
+                    err(lex, "closing parenthesis `)`")?
+                } else {
+                    expr
                 }
-                Ok(expr)
             }
             Token::LeftBracket => {
                 let mut elements = vec![];
@@ -381,27 +383,41 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
                     elements.push(parse_expression(lex)?);
                 }
                 lex.next();
-                Ok(Expr::List(elements))
+                Expr::List(elements)
             }
             Token::LeftSome => {
                 if lex.peek().is_right_paren() {
                     lex.next();
-                    Ok(Expr::None)
+                    Expr::None
                 } else {
                     let inner = parse_expression(lex)?;
                     if !lex.next().is_right_some() {
                         err(lex, "closing `|)` after Some inner expression")?
                     } else {
-                        Ok(Expr::Some(Box::new(inner)))
+                        Expr::Some(Box::new(inner))
                     }
                 }
             }
-            Token::Comment => parse_primary(lex),
-            _ => err(lex, "primary expression"),
+            Token::Comment => parse_primary(lex)?,
+            _ => err(lex, "primary expression")?,
         }
     } else {
-        err(lex, "primary expression")
+        err(lex, "primary expression")?
+    };
+    loop {
+        match lex.peek() {
+            Some(Ok(Token::Bang)) => {
+                lex.next();
+                result = Expr::Ok(Box::new(result));
+            }
+            Some(Ok(Token::Tick)) => {
+                lex.next();
+                result = Expr::Err(Box::new(result));
+            }
+            _ => break,
+        }
     }
+    Ok(result)
 }
 
 fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Type, String> {
@@ -445,9 +461,19 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
             result
         }
     };
-    while lex.peek().is_eroteme() {
-        lex.next();
-        result = Type::Option(Box::new(result));
+    loop {
+        match lex.peek() {
+            Some(Ok(Token::Eroteme)) => {
+                lex.next();
+                result = Type::Option(Box::new(result));
+            }
+            Some(Ok(Token::Bang)) => {
+                lex.next();
+                lex.next();
+                result = Type::Result(Box::new(result), Box::new(parse_type(lex, generic_types)?));
+            }
+            _ => break,
+        }
     }
     Ok(result)
 }

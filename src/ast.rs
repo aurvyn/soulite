@@ -105,6 +105,8 @@ pub enum Expr {
     Literal(Literal),
     Variable(String),
     Some(Box<Expr>),
+    Ok(Box<Expr>),
+    Err(Box<Expr>),
     Binary {
         op: String,
         lhs: Box<Expr>,
@@ -142,6 +144,7 @@ impl Expr {
             Expr::Literal(lit) => lit.to_rust_type(),
             Expr::Variable(_) => String::from("_"),
             Expr::Some(expr) => format!("Option<{}>", expr.to_rust_type()),
+            Expr::Ok(expr) | Expr::Err(expr) => format!("Result<{}>", expr.to_rust_type()),
             Expr::Binary { op: _, lhs, rhs: _ } => lhs.to_rust_type(),
             Expr::Ternary {
                 condition: _,
@@ -169,6 +172,8 @@ impl ToRust for Expr {
             Expr::Literal(lit) => lit.to_rust(),
             Expr::Variable(name) => name.to_rust(),
             Expr::Some(expr) => format!("Some({})", expr.to_rust()),
+            Expr::Ok(expr) => format!("Ok({})", expr.to_rust()),
+            Expr::Err(expr) => format!("Err({})", expr.to_rust()),
             Expr::Binary { op, lhs, rhs } => match op.as_str() {
                 "<<" | "<|" => {
                     let write_func = if op == "<<" { "" } else { "ln" };
@@ -249,6 +254,7 @@ pub enum Type {
     List(Box<Type>),
     Array(Box<Type>, usize),
     Option(Box<Type>),
+    Result(Box<Type>, Box<Type>),
     Generic(String),
 }
 
@@ -262,6 +268,7 @@ impl ToRust for Type {
             Type::List(inner) => format!("Vec<{}>", inner.to_rust()),
             Type::Array(inner, size) => format!("[{};{}]", inner.to_rust(), size),
             Type::Option(inner) => format!("Option<{}>", inner.to_rust()),
+            Type::Result(inner, err) => format!("Result<{},{}>", inner.to_rust(), err.to_rust()),
             Type::Generic(name) => name.to_rust(),
         }
     }
