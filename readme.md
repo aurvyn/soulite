@@ -164,7 +164,7 @@ The main function acts as the "main" function that you might see in other langua
   - [x] Implementation for structs
 	- [x] Generic Types
 	- [x] Self field reference
-- [ ] Features
+- [x] Features
   - [x] Ternary conditional (`true-body <- cond ; false-body`)
   - [x] `Option` data type (`(|)` = `None`, `(|var|)` = `Some(var)`, `Type?` = `Option<Type>`)
-  - [ ] `Result` data type (`var!` = `Ok(var)`, `err'` = `Err(err)`, `Expected!Err` = `Result<Expected, Err>`)
+  - [x] `Result` data type (`var!` = `Ok(var)`, `err'` = `Err(err)`, `Expected!Err` = `Result<Expected, Err>`)
