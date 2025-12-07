@@ -405,7 +405,7 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
 }
 
 fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Type, String> {
-    let result = match lex.slice() {
+    let mut result = match lex.slice() {
         "[" => {
             if !lex.next().is_type() {
                 return err(lex, "type after `[`");
@@ -445,12 +445,11 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
             result
         }
     };
-    Ok(if lex.peek().is_eroteme() {
+    while lex.peek().is_eroteme() {
         lex.next();
-        Type::Option(Box::new(result))
-    } else {
-        result
-    })
+        result = Type::Option(Box::new(result));
+    }
+    Ok(result)
 }
 
 fn parse_parameter(lex: &mut Lexer<Token>) -> Result<Pattern, String> {
