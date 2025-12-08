@@ -255,13 +255,13 @@ fn parse_function(
         });
         return Ok(func);
     }
-    let mut known_param;
-    for i in 0.. {
+    let mut known_param = 1;
+    while known_param != 0 {
         known_param = func.signature.arg_types.len();
-        func.equations.push(Equation {
+        let mut eq = Equation {
             parameters_list: vec![],
             body: vec![],
-        });
+        };
         if !lex.skip_indents(indent) {
             return err(lex, "indentation");
         }
@@ -270,26 +270,24 @@ fn parse_function(
             if matches!(pattern, Pattern::Variable(_) | Pattern::Wildcard) {
                 known_param -= 1;
             }
-            func.equations[i].parameters_list.push(pattern);
+            eq.parameters_list.push(pattern);
         }
         if !lex.next().is_colon() {
             return err(lex, "`:` after function parameters");
         }
         if !lex.peek().is_newline() {
-            func.equations[i].body.push(parse_expression(lex)?);
+            eq.body.push(parse_expression(lex)?);
             if !lex.next().is_newline() {
                 return err(lex, "newline after function body expression");
             }
         } else {
             lex.step_before();
             while lex.peek().is_tab() && lex.skip_indents(indent + 1) {
-                func.equations[i].body.push(parse_expression(lex)?);
+                eq.body.push(parse_expression(lex)?);
                 lex.step_before();
             }
         }
-        if known_param == 0 {
-            break;
-        }
+        func.equations.push(eq);
     }
     Ok(func)
 }
