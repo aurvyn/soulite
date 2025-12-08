@@ -149,8 +149,6 @@ The main function acts as the "main" function that you might see in other langua
 	- [x] Variables
 	- [x] Wildcards
   	- [ ] Guards (Haskell)
-	- [ ] Record pattern (Haskell)
-	- [ ] As pattern (Haskell)
 	- [ ] Generic Types
 - [x] Structs
   - [x] Fields
