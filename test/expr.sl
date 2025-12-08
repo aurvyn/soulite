@@ -2,6 +2,8 @@
 
 +std:cout  \ imports cout from std
 
+\\ this is a doc-comment
+\\ my_const is a const float
 my_const :: 3.14
 
 my_int :- 32

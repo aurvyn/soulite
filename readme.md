@@ -29,7 +29,8 @@ myMutable := "this is a mutable variable"
 mySimpleFunc |-> String
 	"this is a function with no parameters and returns a string"
 
-\ this function takes in two Strings and returns a String
+\\ this is a multi-line doc-comment
+\\ `greet` takes in two Strings and returns a String
 greet | String String -> String
 theirName myName:
 	"Hello {theirName}! My name is {myName}."
@@ -139,9 +140,9 @@ The main function acts as the "main" function that you might see in other langua
   - [x] Immutable
   - [x] Static
   - [x] Const
-- [ ] Comments
+- [x] Comments
   - [x] Single line
-  - [ ] Multi line
+  - [x] Multi line
 - [ ] Functions
   - [x] Parameter matching
   - [ ] Pattern matching
