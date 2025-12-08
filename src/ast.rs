@@ -303,6 +303,7 @@ impl ToRust for TypeSignature {
 
 pub struct Equation {
     pub parameters_list: Vec<Pattern>,
+    pub guard: Option<Expr>,
     pub body: Vec<Expr>,
 }
 
@@ -363,6 +364,9 @@ impl ToRust for Function {
                 let mut matching = equation.parameters_list.to_rust(",");
                 if matcher.len() > 1 {
                     matching = format!("({})", matching);
+                }
+                if let Some(cond) = &equation.guard {
+                    matching = format!("{} if {}", matching, cond.to_rust());
                 }
                 write!(content, "{}=>{{{}}}", matching, equation.body.to_rust(";")).unwrap();
             }

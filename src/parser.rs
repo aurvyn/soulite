@@ -251,6 +251,7 @@ fn parse_function(
         }
         func.equations.push(Equation {
             parameters_list: vec![],
+            guard: None,
             body,
         });
         return Ok(func);
@@ -260,6 +261,7 @@ fn parse_function(
         known_param = func.signature.arg_types.len();
         let mut eq = Equation {
             parameters_list: vec![],
+            guard: None,
             body: vec![],
         };
         if !lex.skip_indents(indent) {
@@ -272,7 +274,13 @@ fn parse_function(
             }
             eq.parameters_list.push(pattern);
         }
-        if !lex.next().is_colon() {
+        let mut tok = lex.next();
+        if tok.is_if() {
+            eq.guard = Some(parse_expression(lex)?);
+            tok = lex.next();
+            known_param = 1;
+        }
+        if !tok.is_colon() {
             return err(lex, "`:` after function parameters");
         }
         if !lex.peek().is_newline() {

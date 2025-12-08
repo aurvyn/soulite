@@ -20,8 +20,7 @@ else:
 	cout << "Unknown input: " <| else
 
 factorial | Int -> Int
-0: 1
-1: 1
+n <- n < 2: 1
 n: n * factorial(n-1)
 
 factorial_tail | Int Int -> Int
