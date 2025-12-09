@@ -277,6 +277,7 @@ impl ToRust for Type {
 pub struct TypeSignature {
     pub name: String,
     pub arg_types: Vec<Type>,
+    pub generic_types: Vec<String>,
     pub return_types: Vec<Type>,
     pub is_method: bool,
 }
@@ -284,8 +285,13 @@ pub struct TypeSignature {
 impl ToRust for TypeSignature {
     fn to_rust(&self) -> String {
         format!(
-            "fn {}({}{}) -> {};",
+            "fn {}{}({}{}) -> {};",
             self.name.to_rust(),
+            if self.generic_types.is_empty() {
+                ""
+            } else {
+                &format!("<{}>", self.generic_types.to_rust(","))
+            },
             if self.is_method { "&mut self," } else { "" },
             self.arg_types
                 .iter()
@@ -340,9 +346,15 @@ impl ToRust for Function {
                 (format!("{}: {}", param.to_rust(), t.to_rust()), matcher)
             })
             .unzip();
+        let generics = if self.signature.generic_types.is_empty() {
+            String::new()
+        } else {
+            format!("<{}>", self.signature.generic_types.to_rust(","))
+        };
         let mut head = format!(
-            "fn {}({}{})",
+            "fn {}{}({}{})",
             func_name,
+            generics,
             if self.signature.is_method {
                 "&mut self,"
             } else {

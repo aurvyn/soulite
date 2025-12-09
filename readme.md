@@ -143,14 +143,14 @@ The main function acts as the "main" function that you might see in other langua
 - [x] Comments
   - [x] Single line
   - [x] Multi line
-- [ ] Functions
+- [x] Functions
   - [x] Parameter matching
-  - [ ] Pattern matching
+  - [x] Pattern matching
 	- [x] Literals
 	- [x] Variables
 	- [x] Wildcards
   	- [x] Guards (Haskell)
-	- [ ] Generic Types
+	- [x] Generic Types
 - [x] Structs
   - [x] Fields
   - [x] Generic Types

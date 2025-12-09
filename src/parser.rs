@@ -39,20 +39,36 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
             Token::Plus => program.imports.push(parse_import(&mut lex)?),
             Token::Identifier => {
                 let name = lex.slice().to_string();
-                let Some(Ok(tok)) = lex.next() else {
+                let Some(Ok(mut tok)) = lex.next() else {
                     return err(&lex, "token after identifier");
                 };
+                let mut fn_generic_types = vec![];
+                if tok == Token::LessThan {
+                    fn_generic_types = parse_generic_types(&mut lex)?;
+                    let Some(Ok(next_tok)) = lex.next() else {
+                        return err(&lex, "token after generic type declaration");
+                    };
+                    tok = next_tok;
+                }
                 match tok {
-                    Token::Pipe => {
-                        program
-                            .functions
-                            .push(parse_function(&mut lex, name, &vec![], false, 0)?)
-                    }
-                    Token::Colon => program.variables.push(parse_assignment(
+                    Token::Pipe => program.functions.push(parse_function(
                         &mut lex,
                         name,
-                        AssignType::Static,
+                        &vec![],
+                        fn_generic_types,
+                        false,
+                        0,
                     )?),
+                    Token::Colon => {
+                        if !fn_generic_types.is_empty() {
+                            return err(&lex, "function marker `|` after generic declaration");
+                        }
+                        program.variables.push(parse_assignment(
+                            &mut lex,
+                            name,
+                            AssignType::Static,
+                        )?)
+                    }
                     _ => return err(&lex, "variable or function marker"),
                 }
             }
@@ -129,10 +145,22 @@ fn parse_trait(
             return err(&lex, "method name after tab");
         }
         let method_name = lex.slice().to_string();
-        if lex.next() != Some(Ok(Token::Pipe)) {
+        let mut tok = lex.next();
+        let mut fn_generic_types = vec![];
+        if tok == Some(Ok(Token::LessThan)) {
+            fn_generic_types = parse_generic_types(lex)?;
+            tok = lex.next();
+        }
+        if tok != Some(Ok(Token::Pipe)) {
             return err(&lex, "`|` after method name");
         }
-        signatures.push(parse_signature(lex, method_name, &generic_types, true)?);
+        signatures.push(parse_signature(
+            lex,
+            method_name,
+            &generic_types,
+            fn_generic_types,
+            true,
+        )?);
     }
     Ok(Trait {
         name,
@@ -156,10 +184,25 @@ fn parse_struct(
         }
         let field_name = lex.slice().to_string();
         tok = lex.next();
+        let mut fn_generic_types = vec![];
+        if tok == Some(Ok(Token::LessThan)) {
+            fn_generic_types = parse_generic_types(lex)?;
+            tok = lex.next();
+        }
         if tok.is_type() {
+            if !fn_generic_types.is_empty() {
+                return err(&lex, "field type");
+            }
             fields.push((field_name, parse_type(lex, &generic_types)?));
         } else if tok == Some(Ok(Token::Pipe)) {
-            methods.push(parse_function(lex, field_name, &generic_types, true, 1)?);
+            methods.push(parse_function(
+                lex,
+                field_name,
+                &generic_types,
+                fn_generic_types,
+                true,
+                1,
+            )?);
         } else {
             return err(&lex, "field type");
         }
@@ -190,10 +233,22 @@ fn parse_impl(
         }
         let method_name = lex.slice().to_string();
         tok = lex.next();
+        let mut fn_generic_types = vec![];
+        if tok == Some(Ok(Token::LessThan)) {
+            fn_generic_types = parse_generic_types(lex)?;
+            tok = lex.next();
+        }
         if tok != Some(Ok(Token::Pipe)) {
             return err(&lex, "`|` after method name");
         }
-        methods.push(parse_function(lex, method_name, &generic_types, true, 1)?);
+        methods.push(parse_function(
+            lex,
+            method_name,
+            &generic_types,
+            fn_generic_types,
+            true,
+            1,
+        )?);
     }
     Ok(Implementation {
         struct_name,
@@ -206,18 +261,24 @@ fn parse_impl(
 fn parse_signature(
     lex: &mut Lexer<Token>,
     name: String,
-    generic_types: &Vec<String>,
+    parent_generic_types: &Vec<String>,
+    fn_generic_types: Vec<String>,
     is_method: bool,
 ) -> Result<TypeSignature, String> {
     let mut signature = TypeSignature {
         name,
         arg_types: vec![],
+        generic_types: fn_generic_types.clone(),
         return_types: vec![],
         is_method,
     };
+    let mut available_generic_types = parent_generic_types.clone();
+    available_generic_types.extend(fn_generic_types);
     let mut tok = lex.next();
     while tok.is_type() {
-        signature.arg_types.push(parse_type(lex, generic_types)?);
+        signature
+            .arg_types
+            .push(parse_type(lex, &available_generic_types)?);
         tok = lex.next();
     }
     if !tok.is_newline() {
@@ -225,7 +286,9 @@ fn parse_signature(
             return err(lex, "`->` after argument types");
         }
         while lex.next().is_type() {
-            signature.return_types.push(parse_type(lex, generic_types)?);
+            signature
+                .return_types
+                .push(parse_type(lex, &available_generic_types)?);
         }
     }
     Ok(signature)
@@ -234,12 +297,13 @@ fn parse_signature(
 fn parse_function(
     lex: &mut Lexer<Token>,
     name: String,
-    generic_types: &Vec<String>,
+    parent_generic_types: &Vec<String>,
+    fn_generic_types: Vec<String>,
     is_method: bool,
     indent: usize,
 ) -> Result<Function, String> {
     let mut func = Function {
-        signature: parse_signature(lex, name, generic_types, is_method)?,
+        signature: parse_signature(lex, name, parent_generic_types, fn_generic_types, is_method)?,
         equations: vec![],
     };
     if func.signature.arg_types.is_empty() {
