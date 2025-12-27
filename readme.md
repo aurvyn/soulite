@@ -174,7 +174,7 @@ Check out the [wiki](https://github.com/aurvyn/soulite/wiki) for an in-depth exp
 </details>
 
 <details>
-<summary>${\color{grey}\text{Expressions}}$</summary>
+<summary>$\color{grey}\text{Expressions}$</summary>
 
 >- [x] $\color{green}\text{Ternary conditional}$
 >- [ ] $\text{Anonymous functions}$
