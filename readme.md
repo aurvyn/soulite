@@ -1,169 +1,195 @@
+> [!NOTE]
+> This language is still under active development!
+> Some features may not be set in stone yet and new features are still being added.
+> This project will enter the [alpha](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha) phase once all [milestones](#milestones) are met.
+
 # Soulite
 
-An experimental compiled programming language focused on making the syntax as compact as possible without sacrificing readability. The compiler toolchain is `SoulForge`, and the file extension is `.sl`. The following should be the ideal directory hierarchy for a simple project:
+An experimental compiled programming language focused on making the syntax as compact as possible without sacrificing readability.
 
 ```
-MyProject
-- soulite.config
-- src
-  - main.soul
-- forged
-  - main
-```
+\ this is a comment!
 
-Anyhow, let's get into the syntax.
-
-## Variables and Functions
-```
-\ this is a comment by the way
-
-\ this imports `cout` from the standard library
+\ this imports `cout` from the standard library...
 +std:cout
 
-myConst :: "this is a const variable" \ only valid in global scope
+myConst :: "I'm a const variable"
+myVar :- "I'm an immutable variable"
+myMutable := "I'm a mutable variable"
 
-myVar :- "this is an immutable variable"
+\ adding an explicit type works too!
+mySpecified: String = "I'm also a mutable variable"
 
-myMutable := "this is a mutable variable"
+\\ this is a multi-line doc-comment to be utilized by IDEs.
+\\ no parameters, returns a string.
+helloWorld |-> String
+	"Hello world!"
 
-mySimpleFunc |-> String
-	"this is a function with no parameters and returns a string"
-
-\\ this is a multi-line doc-comment
-\\ `greet` takes in two Strings and returns a String
+\\ 2 parameters, returns a string.
 greet | String String -> String
 theirName myName:
-	"Hello {theirName}! My name is {myName}."
+	"Hello {theirName}! I'm {myName}."
 
-\ this function has a parameter but returns nothing
-printGreet | String
-"simple":
-	cout <| greet("Andy" "John")
-"what":
-	cout <| greet("Beta" "Alpha")
-else:
-	cout << "Unknown input: " <| else
+\\ has a parameter, returns nothing.
+\\ prints greeting to console based on input.
+greetFriend | String
+"Ferris":
+	cout <| greet("Ferris" "a crustacean too")
+"Octocat":
+	cout <| greet("Octocat" "in a repo")
+creature:
+	cout << "Unknown friend: " <| creature
+```
 
-\ scenarios where pattern matching is more useful
+> [!TIP]
+> Functions are capable of pattern matching, in a style similar to Haskell.
+> ```
+> <functionName> | [argTypes...] [-> returnTypes...]
+> <patterns...> [<- guard]:
+> 	<returnValues...>
+> ```
+> It may also be helpful to read `<-` as `if`, since it's also used in ternary operations:
+> ```
+> response := "ready" <- is_ready ; "not yet"
+> ```
+
+Here are some more advanced examples:
+
+```
+\\ a scenario where pattern matching is more useful!
 factorial | Int -> Int
-0: 1
-1: 1
+n <- n < 2: 1
 n: n * factorial(n-1)
 
-\ tail-recursive
-factorial_tail | Int Int -> Int
-0 _: 1
-1 total: total
-n total: factorial_tail(n-1 total*n)
-```
+\\ tail-recursive version.
+factorialTail | Int Int -> Int
+n total <- n < 2: total
+n total: factorialTail(n-1 total*n)
 
-A lot of syntax here is influenced by Haskell, so most of it would be self-explanatory if you know that language. However, a few things here are unique:
-
-### `|->`
-This is just saying that a function takes in no parameters and returns something.
-
-### `<<`
-Actually similar to how C++ behaves, this takes the item on the right hand side and "appends" it to the left hand side. It's shown in this example that we can append items to a list using this operator.
-
-### `<|`
-Similar to `<<`, except that it acts as a "closing version". This means that this operator does everything you expect `<<` to do, but also other operations that helps keep your codebase clean. For example, the following 2 snippets are pretty much identical in behavior:
-> ```
-> cout << "Hello World!\n"
-> cout.flush()
-> ```
-
-> ```
-> cout <| "Hello World!"
-> ```
-
-## Ternary Conditional
-Use `<-` with `;` to choose between two expressions inline. It reads as `true-body <- condition ; false-body`:
-```
-response := "ready" <- is_ready ; "not yet"
-```
-
-## Structs and Traits
-```
-\ simple struct
+\\ a simple struct.
 Item =
 	name String
 	amount Int
 
-\ struct with generic type `T`
+\\ now with generic type `T`!
 Person<T> =
 	name String
 	age Int
 	items T[2]
 
-	add_item | T
+	addItem | T
 	item: .items << item
 
-	get_items |-> *T[2]
+	getItems |-> *T[2]
 		*.items
 
-\ simple trait
+\\ a simple trait.
 Animal:
-	grow_up | Int -> Int
+	growUp | Int -> Int
 
-\ implement trait for Person
+\\ implement the Animal trait for Person struct...
 Person<T> => Animal
-	grow_up | Int -> Int
+	growUp | Int -> Int
 	years:
 		.age += years
 		.age
 ```
 
-This is where it gets similar to Rust. The `T` used here is a generic type, which would be inferred from the arguments passed into `Person`. Similarly, you can read `Person => Animal` as "implement Animal for Person".
+> [!IMPORTANT]
+> To actually run some code in Soulite, you would want a `main` function:
+> ```
+> main | [String]
+> []: cout <| "Usage: <programName> [-h] <command> <..args>"
+> ["fac" n]: cout <| factorialTail(n.parse().unwrap() 1)
+> ["people"]:
+> 	john := Person("John" 21 ["car keys" "credit card"])
+> 	john.growUp(3)
+> 	cout <| john.age  \ should print "24"
+> ["-h" "fac"]:
+> 	cout <| "Calculates the factorial.\nUsage: <exe_name> fac <Integer>"
+> args:
+> 	cout <| "invalid input `{args.join(" ")}`"
+> 	main([])
+> ```
 
-## Main Function
-```
-main | [String]
-[]: cout <| "Usage: <exe_name> [-h] <command> <..args>"
-["fac" n]: cout <| factorial_tail(n.parse().unwrap() 1)
-["people"]:
-	john := Person("John" 21 ["car keys" "credit card"])
-	john.grow_up(3)
-	cout <| john.age  \ should print "24"
-["-h" "fac"]:
-	cout <| "Calculates the factorial.\nUsage: <exe_name> fac <Integer>"
-args:
-	cout <| "invalid input `main {args.join(" ")}`"
-	main([])
-```
-
-The main function acts as the "main" function that you might see in other languages. Here, it should always have `[String]` as a parameter.
+Check out the [wiki](https://github.com/aurvyn/soulite/wiki) for an in-depth exploration!
 
 # Milestones
 
-- [x] Variables
-  - [x] Mutable
-  - [x] Immutable
-  - [x] Static
-  - [x] Const
-- [x] Comments
-  - [x] Single line
-  - [x] Multi line
-- [x] Functions
-  - [x] Parameter matching
-  - [x] Pattern matching
-	- [x] Literals
-	- [x] Variables
-	- [x] Wildcards
-  	- [x] Guards (Haskell)
-	- [x] Generic Types
-- [x] Structs
-  - [x] Fields
-  - [x] Generic Types
-  - [x] Methods
-    - [x] Generic Types
-	- [x] Self field reference
-- [x] Traits
-  - [x] Method declaration
-  - [x] Generic Types
-  - [x] Implementation for structs
-	- [x] Generic Types
-	- [x] Self field reference
-- [x] Features
-  - [x] Ternary conditional (`true-body <- cond ; false-body`)
-  - [x] `Option` data type (`(|)` = `None`, `(|var|)` = `Some(var)`, `Type?` = `Option<Type>`)
-  - [x] `Result` data type (`var!` = `Ok(var)`, `err'` = `Err(err)`, `Expected!Err` = `Result<Expected, Err>`)
+<details>
+<summary>$${\color{green}\text{Variables}}$$</summary>
+
+>- [x] $${\color{green}\text{Mutable}}$$
+>- [x] $${\color{green}\text{Immutable}}$$
+>- [x] $${\color{green}\text{Static}}$$
+>- [x] $${\color{green}\text{Const}}$$
+</details>
+
+<details>
+<summary>$${\color{green}\text{Comments}}$$</summary>
+
+>- [x] $${\color{green}\text{Single line}}$$
+>- [x] $${\color{green}\text{Multi line}}$$
+</details>
+
+<details>
+<summary>$${\color{green}\text{Functions}}$$</summary>
+
+>- [x] $${\color{green}\text{Parameter matching}}$$
+><details>
+><summary>$${\color{green}\text{Pattern matching}}$$</summary>
+>
+>>- [x] $${\color{green}\text{Literals}}$$
+>>- [x] $${\color{green}\text{Variables}}$$
+>>- [x] $${\color{green}\text{Wildcards}}$$
+>>- [x] $${\color{green}\text{Guards}}$$
+>>- [x] $${\color{green}\text{Generic types}}$$
+></details>
+</details>
+
+<details>
+<summary>$${\color{green}\text{Structs}}$$</summary>
+
+>- [x] $${\color{green}\text{Fields}}$$
+>- [x] $${\color{green}\text{Generic types}}$$
+><details>
+><summary>$${\color{green}\text{Methods}}$$</summary>
+>
+>>- [x] $${\color{green}\text{Generic types}}$$
+>>- [x] $${\color{green}\text{Self field reference}}$$
+></details>
+</details>
+
+<details>
+<summary>$${\color{green}\text{Traits}}$$</summary>
+
+>- [x] $${\color{green}\text{Method declaration}}$$
+>- [x] $${\color{green}\text{Generic types}}$$
+><details>
+><summary>$${\color{green}\text{Struct implements}}$$</summary>
+>
+>>- [x] $${\color{green}\text{Generic types}}$$
+>>- [x] $${\color{green}\text{Self field reference}}$$
+></details>
+</details>
+
+<details>
+<summary>$${\color{grey}\text{Expressions}}$$</summary>
+
+>- [x] $${\color{green}\text{Ternary conditional}}$$
+>- [ ] $${\color{grey}\text{Anonymous functions}}$$
+>- [x] $${\color{green}\text{Option data type}}$$
+>- [x] $${\color{green}\text{Result data type}}$$
+</details>
+
+<details>
+<summary>$${\color{grey}\text{Toolchain}}$$</summary>
+
+>- [ ] $${\color{grey}\text{soulite&mdash;completion of the milestones above}}$$
+>- [ ] $${\color{grey}\text{soulforge&mdash;package manager and build tool}}$$
+>- [ ] $${\color{grey}\text{soulfmt&mdash;code formatter}}$$
+>- [ ] $${\color{grey}\text{soulstd&mdash;standard library}}$$
+>- [ ] $${\color{grey}\text{souldocs&mdash;local docs webpage generator}}$$
+>- [ ] $${\color{grey}\text{soulsight&mdash;language server}}$$
+>- [ ] $${\color{grey}\text{soulsrc&mdash;local source code of standard library}}$$
+</details>
