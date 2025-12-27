@@ -117,79 +117,79 @@ Check out the [wiki](https://github.com/aurvyn/soulite/wiki) for an in-depth exp
 # Milestones
 
 <details>
-<summary>$${\color{green}\text{Variables}}$$</summary>
+<summary>$\color{green}\text{Variables}$</summary>
 
->- [x] $${\color{green}\text{Mutable}}$$
->- [x] $${\color{green}\text{Immutable}}$$
->- [x] $${\color{green}\text{Static}}$$
->- [x] $${\color{green}\text{Const}}$$
+>- [x] $\color{green}\text{Mutable}$
+>- [x] $\color{green}\text{Immutable}$
+>- [x] $\color{green}\text{Static}$
+>- [x] $\color{green}\text{Const}$
 </details>
 
 <details>
-<summary>$${\color{green}\text{Comments}}$$</summary>
+<summary>$\color{green}\text{Comments}$</summary>
 
->- [x] $${\color{green}\text{Single line}}$$
->- [x] $${\color{green}\text{Multi line}}$$
+>- [x] $\color{green}\text{Single line}$
+>- [x] $\color{green}\text{Multi line}$
 </details>
 
 <details>
-<summary>$${\color{green}\text{Functions}}$$</summary>
+<summary>$\color{green}\text{Functions}$</summary>
 
->- [x] $${\color{green}\text{Parameter matching}}$$
+>- [x] $\color{green}\text{Parameter matching}$
 ><details>
-><summary>$${\color{green}\text{Pattern matching}}$$</summary>
+><summary>$\color{green}\text{Pattern matching}$</summary>
 >
->>- [x] $${\color{green}\text{Literals}}$$
->>- [x] $${\color{green}\text{Variables}}$$
->>- [x] $${\color{green}\text{Wildcards}}$$
->>- [x] $${\color{green}\text{Guards}}$$
->>- [x] $${\color{green}\text{Generic types}}$$
+>>- [x] $\color{green}\text{Literals}$
+>>- [x] $\color{green}\text{Variables}$
+>>- [x] $\color{green}\text{Wildcards}$
+>>- [x] $\color{green}\text{Guards}$
+>>- [x] $\color{green}\text{Generic types}$
 ></details>
 </details>
 
 <details>
-<summary>$${\color{green}\text{Structs}}$$</summary>
+<summary>$\color{green}\text{Structs}$</summary>
 
->- [x] $${\color{green}\text{Fields}}$$
->- [x] $${\color{green}\text{Generic types}}$$
+>- [x] $\color{green}\text{Fields}$
+>- [x] $\color{green}\text{Generic types}$
 ><details>
-><summary>$${\color{green}\text{Methods}}$$</summary>
+><summary>$\color{green}\text{Methods}$</summary>
 >
->>- [x] $${\color{green}\text{Generic types}}$$
->>- [x] $${\color{green}\text{Self field reference}}$$
+>>- [x] $\color{green}\text{Generic types}$
+>>- [x] $\color{green}\text{Self field reference}$
 ></details>
 </details>
 
 <details>
-<summary>$${\color{green}\text{Traits}}$$</summary>
+<summary>$\color{green}\text{Traits}$</summary>
 
->- [x] $${\color{green}\text{Method declaration}}$$
->- [x] $${\color{green}\text{Generic types}}$$
+>- [x] $\color{green}\text{Method declaration}$
+>- [x] $\color{green}\text{Generic types}$
 ><details>
-><summary>$${\color{green}\text{Struct implements}}$$</summary>
+><summary>$\color{green}\text{Struct implements}$</summary>
 >
->>- [x] $${\color{green}\text{Generic types}}$$
->>- [x] $${\color{green}\text{Self field reference}}$$
+>>- [x] $\color{green}\text{Generic types}$
+>>- [x] $\color{green}\text{Self field reference}$
 ></details>
 </details>
 
 <details>
-<summary>$${\color{grey}\text{Expressions}}$$</summary>
+<summary>${\color{grey}\text{Expressions}}$</summary>
 
->- [x] $${\color{green}\text{Ternary conditional}}$$
->- [ ] $${\color{grey}\text{Anonymous functions}}$$
->- [x] $${\color{green}\text{Option data type}}$$
->- [x] $${\color{green}\text{Result data type}}$$
+>- [x] $\color{green}\text{Ternary conditional}$
+>- [ ] $\text{Anonymous functions}$
+>- [x] $\color{green}\text{Option data type}$
+>- [x] $\color{green}\text{Result data type}$
 </details>
 
 <details>
-<summary>$${\color{grey}\text{Toolchain}}$$</summary>
+<summary>$\color{grey}\text{Toolchain}$</summary>
 
->- [ ] $${\color{grey}\text{soulite&mdash;completion of the milestones above}}$$
->- [ ] $${\color{grey}\text{soulforge&mdash;package manager and build tool}}$$
->- [ ] $${\color{grey}\text{soulfmt&mdash;code formatter}}$$
->- [ ] $${\color{grey}\text{soulstd&mdash;standard library}}$$
->- [ ] $${\color{grey}\text{souldocs&mdash;local docs webpage generator}}$$
->- [ ] $${\color{grey}\text{soulsight&mdash;language server}}$$
->- [ ] $${\color{grey}\text{soulsrc&mdash;local source code of standard library}}$$
+>- [ ] $\texttt{soulite}&mdash;\text{completion of the milestones above}$
+>- [ ] $\texttt{soulforge}&mdash;\text{package manager and build tool}$
+>- [ ] $\texttt{soulfmt}&mdash;\text{code formatter}$
+>- [ ] $\texttt{soulstd}&mdash;\text{standard library}$
+>- [ ] $\texttt{souldocs}&mdash;\text{local docs webpage generator}$
+>- [ ] $\texttt{soulsight}&mdash;\text{language server}$
+>- [ ] $\texttt{soulsrc}&mdash;\text{local source code of standard library}$
 </details>
