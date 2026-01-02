@@ -176,12 +176,19 @@ Check out the [wiki](https://github.com/aurvyn/soulite/wiki) for an in-depth exp
 <details>
 <summary>$\color{grey}\text{Expressions}$</summary>
 
->- [ ] $\text{HashSets}$
->- [ ] $\text{HashMaps}$
 >- [x] $\color{green}\text{Ternary conditional}$
 >- [ ] $\text{Anonymous functions}$
 >- [x] $\color{green}\text{Option data type}$
 >- [x] $\color{green}\text{Result data type}$
+><details>
+><summary>$\text{Data structures}$</summary>
+>
+>>- [x] $\color{green}\text{Arrays}$
+>>- [x] $\color{green}\text{Lists}$
+>>- [ ] $\text{Tuples}$
+>>- [ ] $\text{HashSets}$
+>>- [ ] $\text{HashMaps}$
+></details>
 ><details>
 ><summary>$\text{Loops}$</summary>
 >
