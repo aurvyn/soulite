@@ -182,8 +182,13 @@ Check out the [wiki](https://github.com/aurvyn/soulite/wiki) for an in-depth exp
 >- [ ] $\text{Anonymous functions}$
 >- [x] $\color{green}\text{Option data type}$
 >- [x] $\color{green}\text{Result data type}$
->- [ ] $\text{For loops}$
->- [ ] $\text{While loops}$
+><details>
+><summary>$\text{Loops}$</summary>
+>
+>>- [ ] $\text{For loop}$
+>>- [ ] $\text{While loop}$
+>>- [ ] $\text{Infinite loop}$
+></details>
 </details>
 
 <details>
