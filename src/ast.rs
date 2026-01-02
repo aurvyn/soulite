@@ -127,6 +127,10 @@ pub enum Expr {
         mutable: bool,
         value: Box<Expr>,
     },
+    Closure {
+        args: Vec<Expr>,
+        body: Box<Expr>,
+    },
 }
 
 impl Expr {
@@ -158,6 +162,7 @@ impl Expr {
                 mutable: _,
                 value,
             } => value.to_rust_type(),
+            Expr::Closure { args: _, body } => body.to_rust_type(),
         }
     }
 }
@@ -242,6 +247,9 @@ impl ToRust for Expr {
                     val
                 )
             }
+            Expr::Closure { args, body } => {
+                format!("|{}|{}", args.to_rust(","), body.to_rust())
+            }
         }
     }
 }
@@ -256,6 +264,7 @@ pub enum Type {
     Option(Box<Type>),
     Result(Box<Type>, Box<Type>),
     Generic(String),
+    Closure(Vec<Type>, Box<Type>),
 }
 
 impl ToRust for Type {
@@ -270,6 +279,9 @@ impl ToRust for Type {
             Type::Option(inner) => format!("Option<{}>", inner.to_rust()),
             Type::Result(inner, err) => format!("Result<{},{}>", inner.to_rust(), err.to_rust()),
             Type::Generic(name) => name.to_rust(),
+            Type::Closure(arg_types, return_type) => {
+                format!("Fn({})->{}", arg_types.to_rust(","), return_type.to_rust())
+            }
         }
     }
 }

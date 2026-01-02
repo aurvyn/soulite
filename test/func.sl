@@ -22,18 +22,24 @@ else:
 id<T> | T -> T
 x: x
 
+map | [Int] (Int -> Int) -> [Int]
+nums func: nums
+
+double | [Int] -> [Int]
+nums: map(nums _*2)
+
 factorial | Int -> Int
 n <- n < 2: 1
 n: n * factorial(n-1)
 
-factorial_tail | Int Int -> Int
+factorialTail | Int Int -> Int
 0 _: 1
 1 total: total
-n total: factorial_tail(n-1 total*n)
+n total: factorialTail(n-1 total*n)
 
 main | [String]
 []: cout <| "Usage: <exe_name> [-h] <command> <..args>"
-["fac" n]: cout <| factorial_tail(n.parse().unwrap() 1)
+["fac" n]: cout <| factorialTail(n.parse().unwrap() 1)
 ["-h" "fac"]:
 	cout <| "Calculates the factorial.\nUsage: <exe_name> fac <Integer>"
 args:
