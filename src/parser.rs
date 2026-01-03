@@ -432,6 +432,10 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
                     parse_assignment(lex, name, AssignType::Normal)?
                 }
             }
+            Token::ParamIdentifier => {
+                let name = lex.slice()[1..].to_string();
+                Expr::AnonParam(Box::new(parse_identifier(lex, name)?))
+            }
             Token::Float => parse_literal(lex, &tok)?,
             Token::Integer => parse_literal(lex, &tok)?,
             Token::String => parse_literal(lex, &tok)?,
@@ -492,6 +496,27 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
 
 fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Type, String> {
     let mut result = match lex.slice() {
+        "(" => {
+            let mut arg_types = vec![];
+            let mut return_types = vec![];
+            let mut tok = lex.next();
+            while tok.is_type() {
+                arg_types.push(parse_type(lex, generic_types)?);
+                tok = lex.next();
+            }
+            if !tok.is_arrow() {
+                return err(lex, "`->` after arg types");
+            }
+            tok = lex.next();
+            while tok.is_type() {
+                return_types.push(parse_type(lex, generic_types)?);
+                tok = lex.next();
+            }
+            if !tok.is_right_paren() {
+                return err(lex, "`)` after return types");
+            }
+            Type::Closure(arg_types, return_types)
+        }
         "[" => {
             if !lex.next().is_type() {
                 return err(lex, "type after `[`");
@@ -598,17 +623,31 @@ fn parse_literal(lex: &mut Lexer<Token>, tok: &Token) -> Result<Expr, String> {
 }
 
 fn parse_identifier(lex: &mut Lexer<Token>, name: String) -> Result<Expr, String> {
-    if lex.peek() == Some(Ok(Token::LeftParen)) {
+    Ok(if lex.peek() == Some(Ok(Token::LeftParen)) {
         lex.next();
         let mut args = vec![];
         while lex.peek() != Some(Ok(Token::RightParen)) {
             args.push(parse_expression(lex)?);
         }
         lex.next();
-        Ok(Expr::Call { callee: name, args })
+        Expr::Call { callee: name, args }
     } else {
-        Ok(Expr::Variable(name))
-    }
+        Expr::Variable(name)
+    })
+}
+
+fn handle_anon_param(
+    lex: &Lexer<Token>,
+    args: &mut Vec<String>,
+    expr: &Expr,
+) -> Result<(), String> {
+    Ok(if let Expr::AnonParam(param) = expr {
+        match &**param {
+            Expr::Call { callee, .. } => args.push(callee.clone()),
+            Expr::Variable(name) => args.push(name.clone()),
+            _ => err(lex, "call or variable expression")?,
+        }
+    })
 }
 
 fn parse_binary_expression(
@@ -617,9 +656,14 @@ fn parse_binary_expression(
     precedence: u8,
 ) -> Result<Expr, String> {
     while let Some(Ok(tok)) = lex.peek() {
+        let mut args = vec![];
+        handle_anon_param(lex, &mut args, &lhs)?;
         let prec = tok.get_precedence();
         if prec < precedence {
-            return Ok(lhs);
+            if let Expr::AnonParam(param) = lhs {
+                lhs = Expr::Closure { args, body: param };
+            }
+            break;
         }
         lex.next();
         let op = lex.slice().to_string();
@@ -635,11 +679,18 @@ fn parse_binary_expression(
                 rhs = parse_binary_expression(lex, rhs, next_prec + is_left_associative)?;
             }
         }
+        handle_anon_param(lex, &mut args, &rhs)?;
         lhs = Expr::Binary {
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         };
+        if !args.is_empty() {
+            lhs = Expr::Closure {
+                args,
+                body: Box::new(lhs),
+            };
+        }
     }
     Ok(lhs)
 }

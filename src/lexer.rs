@@ -6,6 +6,9 @@ pub enum Token {
     #[regex(r"\p{Ll}[_\p{L}]*")]
     Identifier,
 
+    #[regex(r"_\p{Ll}[_\p{L}]*")]
+    ParamIdentifier,
+
     #[regex(r"\p{Lu}\p{L}*")]
     Type,
 
@@ -308,6 +311,7 @@ impl CheckToken for Option<Result<Token, ()>> {
 
     fn is_type(&self) -> bool {
         self == &Some(Ok(Token::Type))
+            || self == &Some(Ok(Token::LeftParen))
             || self == &Some(Ok(Token::LeftBracket))
             || self == &Some(Ok(Token::Star))
     }

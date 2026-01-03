@@ -26,7 +26,7 @@ map | [Int] (Int -> Int) -> [Int]
 nums func: nums
 
 double | [Int] -> [Int]
-nums: map(nums _*2)
+nums: map(nums _x*2)
 
 factorial | Int -> Int
 n <- n < 2: 1

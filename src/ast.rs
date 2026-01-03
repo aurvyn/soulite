@@ -104,6 +104,8 @@ pub enum Expr {
     List(Vec<Expr>),
     Literal(Literal),
     Variable(String),
+    /// Always contain either [`Expr::Variable`] or [`Expr::Call`]
+    AnonParam(Box<Expr>),
     Some(Box<Expr>),
     Ok(Box<Expr>),
     Err(Box<Expr>),
@@ -112,6 +114,7 @@ pub enum Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+    /// `<then-expr> <- <condition> ; <else-expr>`
     Ternary {
         condition: Box<Expr>,
         if_true: Box<Expr>,
@@ -128,7 +131,7 @@ pub enum Expr {
         value: Box<Expr>,
     },
     Closure {
-        args: Vec<Expr>,
+        args: Vec<String>,
         body: Box<Expr>,
     },
 }
@@ -147,6 +150,7 @@ impl Expr {
             ),
             Expr::Literal(lit) => lit.to_rust_type(),
             Expr::Variable(_) => String::from("_"),
+            Expr::AnonParam(param) => param.to_rust_type(),
             Expr::Some(expr) => format!("Option<{}>", expr.to_rust_type()),
             Expr::Ok(expr) | Expr::Err(expr) => format!("Result<{}>", expr.to_rust_type()),
             Expr::Binary { op: _, lhs, rhs: _ } => lhs.to_rust_type(),
@@ -176,6 +180,7 @@ impl ToRust for Expr {
             Expr::List(items) => format!("vec![{}]", items.to_rust(",")),
             Expr::Literal(lit) => lit.to_rust(),
             Expr::Variable(name) => name.to_rust(),
+            Expr::AnonParam(param) => param.to_rust(),
             Expr::Some(expr) => format!("Some({})", expr.to_rust()),
             Expr::Ok(expr) => format!("Ok({})", expr.to_rust()),
             Expr::Err(expr) => format!("Err({})", expr.to_rust()),
@@ -264,7 +269,7 @@ pub enum Type {
     Option(Box<Type>),
     Result(Box<Type>, Box<Type>),
     Generic(String),
-    Closure(Vec<Type>, Box<Type>),
+    Closure(Vec<Type>, Vec<Type>),
 }
 
 impl ToRust for Type {
@@ -280,7 +285,11 @@ impl ToRust for Type {
             Type::Result(inner, err) => format!("Result<{},{}>", inner.to_rust(), err.to_rust()),
             Type::Generic(name) => name.to_rust(),
             Type::Closure(arg_types, return_type) => {
-                format!("Fn({})->{}", arg_types.to_rust(","), return_type.to_rust())
+                format!(
+                    "&dyn Fn({})->({})",
+                    arg_types.to_rust(","),
+                    return_type.to_rust(",")
+                )
             }
         }
     }
