@@ -436,6 +436,7 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
                 let name = lex.slice()[1..].to_string();
                 Expr::AnonParam(Box::new(parse_identifier(lex, name)?))
             }
+            Token::Underscore => Expr::AnonParam(Box::new(Expr::None)),
             Token::Float => parse_literal(lex, &tok)?,
             Token::Integer => parse_literal(lex, &tok)?,
             Token::String => parse_literal(lex, &tok)?,
@@ -636,18 +637,22 @@ fn parse_identifier(lex: &mut Lexer<Token>, name: String) -> Result<Expr, String
     })
 }
 
-fn handle_anon_param(
-    lex: &Lexer<Token>,
-    args: &mut Vec<String>,
-    expr: &Expr,
-) -> Result<(), String> {
-    Ok(if let Expr::AnonParam(param) = expr {
-        match &**param {
-            Expr::Call { callee, .. } => args.push(callee.clone()),
-            Expr::Variable(name) => args.push(name.clone()),
-            _ => err(lex, "call or variable expression")?,
+fn handle_anon_param(args: &mut Vec<String>, expr: &mut Expr) {
+    if let Expr::AnonParam(param) = expr {
+        let name = match &**param {
+            Expr::Call { callee, .. } => callee.clone(),
+            Expr::Variable(name) => name.clone(),
+            Expr::None => {
+                let name = format!("arg{}", args.len());
+                **param = Expr::Variable(name.clone());
+                name
+            }
+            _ => unreachable!(),
+        };
+        if !args.contains(&name) {
+            args.push(name);
         }
-    })
+    }
 }
 
 fn parse_binary_expression(
@@ -657,7 +662,7 @@ fn parse_binary_expression(
 ) -> Result<Expr, String> {
     while let Some(Ok(tok)) = lex.peek() {
         let mut args = vec![];
-        handle_anon_param(lex, &mut args, &lhs)?;
+        handle_anon_param(&mut args, &mut lhs);
         let prec = tok.get_precedence();
         if prec < precedence {
             if let Expr::AnonParam(param) = lhs {
@@ -679,7 +684,7 @@ fn parse_binary_expression(
                 rhs = parse_binary_expression(lex, rhs, next_prec + is_left_associative)?;
             }
         }
-        handle_anon_param(lex, &mut args, &rhs)?;
+        handle_anon_param(&mut args, &mut rhs);
         lhs = Expr::Binary {
             op,
             lhs: Box::new(lhs),

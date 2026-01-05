@@ -104,7 +104,7 @@ pub enum Expr {
     List(Vec<Expr>),
     Literal(Literal),
     Variable(String),
-    /// Always contain either [`Expr::Variable`] or [`Expr::Call`]
+    /// Always contain [`Expr::Variable`] or [`Expr::Call`] or [`Expr::None`].
     AnonParam(Box<Expr>),
     Some(Box<Expr>),
     Ok(Box<Expr>),
