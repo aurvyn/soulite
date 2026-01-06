@@ -385,8 +385,9 @@ fn parse_assignment(
     let Some(Ok(mut tok)) = lex.next() else {
         return err(lex, "expected token after colon");
     };
+    let mut type_hint = None;
     if tok == Token::Type {
-        let _ = parse_type(lex, &vec![])?;
+        type_hint = Some(parse_type(lex, &vec![])?);
         if let Some(Ok(token)) = lex.next() {
             tok = token;
         } else {
@@ -407,6 +408,7 @@ fn parse_assignment(
         assign_type,
         mutable,
         value: Box::new(parse_expression(lex)?),
+        type_hint,
     })
 }
 

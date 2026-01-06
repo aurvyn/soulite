@@ -39,9 +39,12 @@ fn main() -> Result<(), String> {
     let rust_tree = syn::parse_file(&soulite_tree.to_rust())
         .map_err(|e| format!("Failed to parse Soulite file: {}", e))?;
     let rust_code = prettyplease::unparse(&rust_tree);
-    let rust_file = cli
-        .transpile
-        .unwrap_or_else(|| cli.soulite_file.replace(".sl", ".rs"));
+    let rust_file = cli.transpile.unwrap_or_else(|| {
+        std::path::Path::new(&cli.soulite_file)
+            .with_extension("rs")
+            .to_string_lossy()
+            .to_string()
+    });
     let mut file =
         File::create(&rust_file).map_err(|e| format!("Failed to create rust file: {}", e))?;
     file.write_all(rust_code.as_bytes())

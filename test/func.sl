@@ -22,6 +22,7 @@ else:
 id<T> | T -> T
 x: x
 
+\\ will complete once for loops are implemented
 map | [Int] (Int -> Int) -> [Int]
 nums func: nums
 

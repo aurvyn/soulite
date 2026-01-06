@@ -42,9 +42,9 @@ pub enum Literal {
 impl Literal {
     fn to_rust_type(&self) -> String {
         match self {
-            Literal::Integer(_) => "i64".to_string(),
-            Literal::Float(_) => "f64".to_string(),
-            Literal::String(_) => "String".to_string(),
+            Literal::Integer(_) => String::from("i64"),
+            Literal::Float(_) => String::from("f64"),
+            Literal::String(_) => String::from("String"),
         }
     }
 }
@@ -73,7 +73,7 @@ impl ToRust for Pattern {
             Pattern::Literal(lit) => lit.to_rust(),
             Pattern::Variable(name) => name.to_rust(),
             Pattern::List(patterns) => format!("[{}]", patterns.to_rust(",")),
-            Pattern::Wildcard => "_".to_string(),
+            Pattern::Wildcard => String::from("_"),
         }
     }
 }
@@ -87,12 +87,11 @@ pub enum AssignType {
 
 impl ToRust for AssignType {
     fn to_rust(&self) -> String {
-        match self {
+        String::from(match self {
             AssignType::Const => "const",
             AssignType::Static => "static",
             AssignType::Normal => "let",
-        }
-        .to_string()
+        })
     }
 }
 
@@ -129,6 +128,7 @@ pub enum Expr {
         assign_type: AssignType,
         mutable: bool,
         value: Box<Expr>,
+        type_hint: Option<Type>,
     },
     Closure {
         args: Vec<String>,
@@ -146,27 +146,33 @@ impl Expr {
                 "Vec<{}>",
                 items
                     .first()
-                    .map_or("()".to_string(), |item| item.to_rust_type())
+                    .map_or(String::from("_"), |item| item.to_rust_type())
             ),
             Expr::Literal(lit) => lit.to_rust_type(),
             Expr::Variable(_) => String::from("_"),
             Expr::AnonParam(param) => param.to_rust_type(),
             Expr::Some(expr) => format!("Option<{}>", expr.to_rust_type()),
-            Expr::Ok(expr) | Expr::Err(expr) => format!("Result<{}>", expr.to_rust_type()),
-            Expr::Binary { op: _, lhs, rhs: _ } => lhs.to_rust_type(),
-            Expr::Ternary {
-                condition: _,
-                if_true,
-                if_false: _,
-            } => if_true.to_rust_type(),
-            Expr::Call { callee: _, args: _ } => String::from("_"),
+            Expr::Ok(expr) => format!("Result<{}, _>", expr.to_rust_type()),
+            Expr::Err(expr) => format!("Result<_, {}>", expr.to_rust_type()),
+            Expr::Binary { op, lhs, rhs } => match op.as_str() {
+                "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||" => String::from("bool"),
+                "<<" | "<|" => String::from("()"),
+                "." => rhs.to_rust_type(),
+                ".." => format!("std::ops::Range<{}>", lhs.to_rust_type()),
+                _ => lhs.to_rust_type(),
+            },
+            Expr::Ternary { if_true, .. } => if_true.to_rust_type(),
+            Expr::Call { .. } => String::from("_"),
             Expr::Assign {
-                name: _,
-                assign_type: _,
-                mutable: _,
-                value,
-            } => value.to_rust_type(),
-            Expr::Closure { args: _, body } => body.to_rust_type(),
+                value, type_hint, ..
+            } => {
+                if let Some(hint) = type_hint {
+                    hint.to_rust()
+                } else {
+                    value.to_rust_type()
+                }
+            }
+            Expr::Closure { body, .. } => body.to_rust_type(),
         }
     }
 }
@@ -235,11 +241,14 @@ impl ToRust for Expr {
                 mutable,
                 assign_type,
                 value,
+                type_hint,
             } => {
-                let (t, val) = if matches!(assign_type, AssignType::Const | AssignType::Static)
+                let (t, val) = if let Some(ty) = type_hint.as_ref() {
+                    (ty.to_rust(), value.to_rust())
+                } else if matches!(assign_type, AssignType::Const | AssignType::Static)
                     && let Expr::Literal(Literal::String(val)) = *value.clone()
                 {
-                    ("&str".to_string(), format!("\"{}\"", val))
+                    (String::from("&str"), format!("\"{}\"", val))
                 } else {
                     (value.to_rust_type(), value.to_rust())
                 };
@@ -259,6 +268,7 @@ impl ToRust for Expr {
     }
 }
 
+#[derive(Clone)]
 pub enum Type {
     Integer,
     Float,
@@ -286,7 +296,7 @@ impl ToRust for Type {
             Type::Generic(name) => name.to_rust(),
             Type::Closure(arg_types, return_type) => {
                 format!(
-                    "&dyn Fn({})->({})",
+                    "impl Fn({})->({})",
                     arg_types.to_rust(","),
                     return_type.to_rust(",")
                 )
@@ -320,7 +330,7 @@ impl ToRust for TypeSignature {
                 .collect::<Vec<_>>()
                 .join(","),
             match self.return_types.len() {
-                0 => "()".to_string(),
+                0 => String::from("()"),
                 1 => self.return_types.to_rust(","),
                 _ => format!("({})", self.return_types.to_rust(",")),
             }
@@ -358,10 +368,13 @@ impl ToRust for Function {
             .map(|(t, param)| {
                 let matcher = match t {
                     Type::String => format!("{}.as_str()", param.to_rust()),
-                    Type::List(_) => format!(
-                        "{}.iter().map(String::as_str).collect::<Vec<_>>()[..]",
-                        param.to_rust()
-                    ),
+                    Type::List(inner) => match &**inner {
+                        Type::String => format!(
+                            "{}.iter().map(String::as_str).collect::<Vec<_>>()[..]",
+                            param.to_rust()
+                        ),
+                        _ => format!("{}.as_slice()", param.to_rust()),
+                    },
                     _ => param.to_rust(),
                 };
                 (format!("{}: {}", param.to_rust(), t.to_rust()), matcher)
@@ -513,14 +526,18 @@ pub struct Import {
 impl ToRust for Import {
     fn to_rust(&self) -> String {
         if self.filename == "std" {
-            let mut import = String::new();
-            for item in &self.items {
-                match item.as_str() {
-                    "cout" => import.push_str("io::{Write, stdout},"),
-                    _ => (),
+            if self.items.is_empty() {
+                String::new()
+            } else {
+                let mut import = String::new();
+                for item in &self.items {
+                    match item.as_str() {
+                        "cout" => import.push_str("io::{Write, stdout},"),
+                        _ => (),
+                    }
                 }
+                format!("use std::{{{}}};", import)
             }
-            format!("use std::{{{}}};", import)
         } else {
             let module = format!("mod {};", self.filename);
             if self.items.is_empty() {
