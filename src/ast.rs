@@ -321,9 +321,9 @@ impl ToRust for TypeSignature {
             "fn {}{}({}{}) -> {};",
             self.name.to_rust(),
             if self.generic_types.is_empty() {
-                ""
+                String::new()
             } else {
-                &format!("<{}>", self.generic_types.to_rust(","))
+                format!("<{}>", self.generic_types.to_rust(","))
             },
             if self.is_method { "&mut self," } else { "" },
             self.arg_types
