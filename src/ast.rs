@@ -270,6 +270,7 @@ impl ToRust for Expr {
 
 #[derive(Clone)]
 pub enum Type {
+    Unsigned,
     Integer,
     Float,
     String,
@@ -285,6 +286,7 @@ pub enum Type {
 impl ToRust for Type {
     fn to_rust(&self) -> String {
         match self {
+            Type::Unsigned => String::from("u64"),
             Type::Integer => String::from("i64"),
             Type::Float => String::from("f64"),
             Type::String => String::from("String"),

@@ -57,24 +57,24 @@ Here are some more advanced examples:
 
 ```
 \\ a scenario where pattern matching is more useful!
-factorial | Int -> Int
+factorial | Z64 -> Z64
 n <- n < 2: 1
 n: n * factorial(n-1)
 
 \\ tail-recursive version.
-factorialTail | Int Int -> Int
+factorialTail | Z64 Z64 -> Z64
 n total <- n < 2: total
 n total: factorialTail(n-1 total*n)
 
 \\ a simple struct.
 Item =
 	name String
-	amount Int
+	amount Z64
 
 \\ now with generic type `T`!
 Person<T> =
 	name String
-	age Int
+	age Z64
 	items T[2]
 
 	addItem | T
@@ -85,11 +85,11 @@ Person<T> =
 
 \\ a simple trait.
 Animal:
-	growUp | Int -> Int
+	growUp | Z64 -> Z64
 
 \\ implement the Animal trait for Person struct...
 Person<T> => Animal
-	growUp | Int -> Int
+	growUp | Z64 -> Z64
 	years:
 		.age += years
 		.age

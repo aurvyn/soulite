@@ -539,8 +539,9 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
         }
         _ => {
             let result = match lex.slice() {
-                "Int" => Type::Integer,
-                "Float" => Type::Float,
+                "N64" => Type::Unsigned,
+                "Z64" => Type::Integer,
+                "R64" => Type::Float,
                 "String" => Type::String,
                 tok if generic_types.contains(&tok.to_string()) => Type::Generic(tok.to_string()),
                 _ => return err(lex, "type"),

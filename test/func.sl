@@ -3,7 +3,7 @@
 mySimpleFunc |-> String
 	"this is a function with no parameters and returns a string"
 
-greet | String String -> String?!Int??
+greet | String String -> String?!Z64??
 "Tom" "Jerry":
 	(|(|)|)'
 theirName myName:
@@ -23,17 +23,17 @@ id<T> | T -> T
 x: x
 
 \\ will complete once for loops are implemented
-map | [Int] (Int -> Int) -> [Int]
+map | [Z64] (Z64 -> Z64) -> [Z64]
 nums func: nums
 
-square | [Int] -> [Int]
+square | [Z64] -> [Z64]
 nums: map(nums _x*_x)
 
-factorial | Int -> Int
+factorial | Z64 -> Z64
 n <- n < 2: 1
 n: n * factorial(n-1)
 
-factorialTail | Int Int -> Int
+factorialTail | Z64 Z64 -> Z64
 0 _: 1
 1 total: total
 n total: factorialTail(n-1 total*n)

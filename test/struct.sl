@@ -4,7 +4,7 @@ Item =
 
 Person<T> =
 	name String
-	age Int
+	age Z64
 	items T[5]
 
 	add_item | T
@@ -14,10 +14,10 @@ Person<T> =
 		*.items
 
 Animal:
-	grow_up | Int -> Int
+	grow_up | Z64 -> Z64
 
 Person<T> => Animal
-	grow_up | Int -> Int
+	grow_up | Z64 -> Z64
 	years:
 		.age += years
 		.age

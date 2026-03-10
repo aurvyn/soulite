@@ -27,13 +27,13 @@ else:
 	cout << "Unknown input: " <| else
 
 \ scenarios where pattern matching is more useful
-factorial | Int -> Int
+factorial | Z64 -> Z64
 0: 1
 1: 1
 n: n * factorial(n-1)
 
 \ tail-recursive
-factorial_tail | Int Int -> Int
+factorial_tail | Z64 Z64 -> Z64
 0 _: 1
 1 total: total
 n total: factorial_tail(n-1 total*n)
@@ -41,7 +41,7 @@ n total: factorial_tail(n-1 total*n)
 \ struct declaration with generic type `T`
 Person<T> =
 	name String
-	age Int
+	age Z64
 	items T[2]
 
 	add_item | T
@@ -52,11 +52,11 @@ Person<T> =
 
 \ simple trait
 Animal:
-	grow_up | Int -> Int
+	grow_up | Z64 -> Z64
 
 \ implement trait for struct
 Person<T> => Animal
-	grow_up | Int -> Int
+	grow_up | Z64 -> Z64
 	years:
 		.age += years
 		.age
