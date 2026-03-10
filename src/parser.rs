@@ -439,9 +439,7 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
                 Expr::AnonParam(Box::new(parse_identifier(lex, name)?))
             }
             Token::Underscore => Expr::AnonParam(Box::new(Expr::None)),
-            Token::Float => parse_literal(lex, &tok)?,
-            Token::Integer => parse_literal(lex, &tok)?,
-            Token::String => parse_literal(lex, &tok)?,
+            Token::Float | Token::Integer | Token::String => parse_literal(lex, &tok)?,
             Token::Star => {
                 let expr = parse_expression(lex)?;
                 Expr::Reference(Box::new(expr))
@@ -497,6 +495,16 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
     Ok(result)
 }
 
+fn parse_num_type_bits(lex: &mut Lexer<Token>) -> Result<u8, String> {
+    if lex.next() == Some(Ok(Token::Integer)) // currently `N 32` is valid
+    && let Ok(bits) = lex.slice().parse::<u8>()
+    && [8, 16, 32, 64, 128].contains(&bits) {
+        Ok(bits)
+    } else {
+        err(lex, "8, 16, 32, 64, or 128 bits for this number type")
+    }
+}
+
 fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Type, String> {
     let mut result = match lex.slice() {
         "(" => {
@@ -539,9 +547,9 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
         }
         _ => {
             let result = match lex.slice() {
-                "N64" => Type::Unsigned,
-                "Z64" => Type::Integer,
-                "R64" => Type::Float,
+                "N" => Type::Unsigned(parse_num_type_bits(lex)?),
+                "Z" => Type::Integer(parse_num_type_bits(lex)?),
+                "R" => Type::Float(parse_num_type_bits(lex)?),
                 "String" => Type::String,
                 tok if generic_types.contains(&tok.to_string()) => Type::Generic(tok.to_string()),
                 _ => return err(lex, "type"),
