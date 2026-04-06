@@ -1,5 +1,3 @@
-use std::fmt::Write;
-
 pub trait ToRust {
     fn to_rust(&self) -> String;
 }
@@ -309,8 +307,9 @@ impl ToRust for Type {
 
 pub struct TypeSignature {
     pub name: String,
-    pub arg_types: Vec<Type>,
-    pub generic_types: Vec<String>,
+    pub param_names: Vec<String>,
+    pub param_types: Vec<Type>,
+    pub generics: Vec<String>,
     pub return_types: Vec<Type>,
     pub is_method: bool,
 }
@@ -318,17 +317,18 @@ pub struct TypeSignature {
 impl ToRust for TypeSignature {
     fn to_rust(&self) -> String {
         format!(
-            "fn {}{}({}{}) -> {};",
-            self.name.to_rust(),
-            if self.generic_types.is_empty() {
-                ""
+            "fn {}{}({}{}) -> {}",
+            if self.name == "main" {
+                String::from("start")
             } else {
-                &format!("<{}>", self.generic_types.to_rust(","))
+                self.name.to_rust()
             },
+            format!("<{}>", self.generics.to_rust(",")),
             if self.is_method { "&mut self," } else { "" },
-            self.arg_types
+            self.param_names
                 .iter()
-                .map(|t| format!("_: {}", t.to_rust()))
+                .zip(self.param_types.iter())
+                .map(|(n, t)| format!("{n}: {}", t.to_rust()))
                 .collect::<Vec<_>>()
                 .join(","),
             match self.return_types.len() {
@@ -348,87 +348,15 @@ pub struct Equation {
 
 pub struct Function {
     pub signature: TypeSignature,
-    pub equations: Vec<Equation>,
+    pub body: Vec<Expr>,
 }
 
 impl ToRust for Function {
     fn to_rust(&self) -> String {
-        if self.equations.is_empty() {
-            return String::new();
-        }
-        let equation = &self.equations.last().unwrap();
-        let signature = &self.signature;
-        let func_name = if signature.name == "main" {
-            "start"
-        } else {
-            &signature.name
-        };
-        let (param, matcher): (Vec<_>, Vec<_>) = signature
-            .arg_types
-            .iter()
-            .zip(equation.parameters_list.iter())
-            .map(|(t, param)| {
-                let matcher = match t {
-                    Type::String => format!("{}.as_str()", param.to_rust()),
-                    Type::List(inner) => match &**inner {
-                        Type::String => format!(
-                            "{}.iter().map(String::as_str).collect::<Vec<_>>()[..]",
-                            param.to_rust()
-                        ),
-                        _ => format!("{}.as_slice()", param.to_rust()),
-                    },
-                    _ => param.to_rust(),
-                };
-                (format!("{}: {}", param.to_rust(), t.to_rust()), matcher)
-            })
-            .unzip();
-        let generics = if self.signature.generic_types.is_empty() {
-            String::new()
-        } else {
-            format!("<{}>", self.signature.generic_types.to_rust(","))
-        };
-        let mut head = format!(
-            "fn {}{}({}{})",
-            func_name,
-            generics,
-            if self.signature.is_method {
-                "&mut self,"
-            } else {
-                ""
-            },
-            param.join(",")
-        );
-        let ret = signature.return_types.to_rust(",");
-        match signature.return_types.len() {
-            0 => {}
-            1 => write!(head, " -> {}", ret).unwrap(),
-            _ => write!(head, " -> ({})", ret).unwrap(),
-        }
-        let body = if matcher.len() == 0 {
-            equation.body.to_rust(";")
-        } else {
-            let mut content = String::new();
-            for equation in self.equations.iter().take(self.equations.len() - 1) {
-                let mut matching = equation.parameters_list.to_rust(",");
-                if matcher.len() > 1 {
-                    matching = format!("({})", matching);
-                }
-                if let Some(cond) = &equation.guard {
-                    matching = format!("{} if {}", matching, cond.to_rust());
-                }
-                write!(content, "{}=>{{{}}}", matching, equation.body.to_rust(";")).unwrap();
-            }
-            write!(content, "_=>{{{}}}", equation.body.to_rust(";")).unwrap();
-            content
-        };
         format!(
             "{} {{{}}}",
-            head,
-            match matcher.len() {
-                0 => format!("{}", body),
-                1 => format!("match {} {{{}}}", matcher.join(", "), body),
-                _ => format!("match ({}) {{{}}}", matcher.join(", "), body),
-            }
+            self.signature.to_rust(),
+            self.body.to_rust(",")
         )
     }
 }
@@ -463,7 +391,7 @@ type Field = (String, Type);
 
 pub struct Struct {
     pub name: String,
-    pub generic_types: Vec<String>,
+    pub generics: Vec<String>,
     pub fields: Vec<Field>,
     pub methods: Vec<Function>,
 }
@@ -477,21 +405,21 @@ impl ToRust for Struct {
             .collect::<Vec<_>>()
             .join(", ");
         let name = self.name.to_rust();
-        let generic_types = if self.generic_types.is_empty() {
+        let generics = if self.generics.is_empty() {
             String::new()
         } else {
-            format!("<{}>", self.generic_types.to_rust(","))
+            format!("<{}>", self.generics.to_rust(","))
         };
-        let base = format!("struct {}{} {{{}}}", name, generic_types, fields);
+        let base = format!("struct {}{} {{{}}}", name, generics, fields);
         if self.methods.is_empty() {
             return base;
         }
         format!(
             "{} impl{} {}{} {{{}}}",
             base,
-            generic_types,
+            generics,
             name,
-            generic_types,
+            generics,
             self.methods.to_rust("")
         )
     }
@@ -499,22 +427,22 @@ impl ToRust for Struct {
 
 pub struct Trait {
     pub name: String,
-    pub generic_types: Vec<String>,
+    pub generics: Vec<String>,
     pub signatures: Vec<TypeSignature>,
 }
 
 impl ToRust for Trait {
     fn to_rust(&self) -> String {
-        let signatures = self.signatures.to_rust("");
-        let generic_types = if self.generic_types.is_empty() {
+        let signatures = self.signatures.to_rust(";") + ";";
+        let generics = if self.generics.is_empty() {
             String::new()
         } else {
-            format!("<{}>", self.generic_types.to_rust(","))
+            format!("<{}>", self.generics.to_rust(","))
         };
         format!(
             "trait {}{} {{{}}}",
             self.name.to_rust(),
-            generic_types,
+            generics,
             signatures
         )
     }

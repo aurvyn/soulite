@@ -2,8 +2,8 @@ use std::vec;
 
 use crate::{
     ast::{
-        AssignType, Equation, Expr, Function, Implementation, Import, Literal, Pattern, Program,
-        Struct, Trait, Type, TypeSignature,
+        AssignType, Expr, Function, Implementation, Import, Literal, Pattern, Program, Struct,
+        Trait, Type, TypeSignature,
     },
     lexer::{CheckToken, Lookahead, Token},
 };
@@ -39,37 +39,26 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
             Token::Plus => program.imports.push(parse_import(&mut lex)?),
             Token::Identifier => {
                 let name = lex.slice().to_string();
-                let Some(Ok(mut tok)) = lex.next() else {
-                    return err(&lex, "token after identifier");
-                };
-                let mut fn_generic_types = vec![];
-                if tok == Token::LessThan {
-                    fn_generic_types = parse_generic_types(&mut lex)?;
-                    let Some(Ok(next_tok)) = lex.next() else {
-                        return err(&lex, "token after generic type declaration");
-                    };
-                    tok = next_tok;
-                }
-                match tok {
-                    Token::Pipe => program.functions.push(parse_function(
-                        &mut lex,
-                        name,
-                        &vec![],
-                        fn_generic_types,
-                        false,
-                        0,
-                    )?),
-                    Token::Colon => {
-                        if !fn_generic_types.is_empty() {
-                            return err(&lex, "function marker `|` after generic declaration");
-                        }
+                let (param_names, tok) = parse_params(&mut lex);
+                if tok.is_colon() {
+                    if lex.peek().is_arrow() {
+                        program.functions.push(parse_function(
+                            &mut lex,
+                            name,
+                            param_names,
+                            &vec![],
+                            false,
+                            1,
+                        )?)
+                    } else {
                         program.variables.push(parse_assignment(
                             &mut lex,
                             name,
                             AssignType::Static,
                         )?)
                     }
-                    _ => return err(&lex, "variable or function marker"),
+                } else {
+                    return err(&lex, "variable or function marker");
                 }
             }
             Token::Type => {
@@ -133,7 +122,7 @@ fn parse_import(lex: &mut Lexer<Token>) -> Result<Import, String> {
 fn parse_trait(
     lex: &mut Lexer<Token>,
     name: String,
-    generic_types: Vec<String>,
+    generics: Vec<String>,
 ) -> Result<Trait, String> {
     let mut signatures = vec![];
     if !lex.next().is_newline() {
@@ -145,26 +134,21 @@ fn parse_trait(
             return err(&lex, "method name after tab");
         }
         let method_name = lex.slice().to_string();
-        let mut tok = lex.next();
-        let mut fn_generic_types = vec![];
-        if tok == Some(Ok(Token::LessThan)) {
-            fn_generic_types = parse_generic_types(lex)?;
-            tok = lex.next();
-        }
-        if tok != Some(Ok(Token::Pipe)) {
-            return err(&lex, "`|` after method name");
+        let (param_names, tok) = parse_params(lex);
+        if !tok.is_colon() {
+            return err(&lex, "`:` for method");
         }
         signatures.push(parse_signature(
             lex,
             method_name,
-            &generic_types,
-            fn_generic_types,
+            param_names,
+            &generics,
             true,
         )?);
     }
     Ok(Trait {
         name,
-        generic_types,
+        generics,
         signatures,
     })
 }
@@ -172,44 +156,35 @@ fn parse_trait(
 fn parse_struct(
     lex: &mut Lexer<Token>,
     name: String,
-    generic_types: Vec<String>,
+    generics: Vec<String>,
 ) -> Result<Struct, String> {
     let mut fields = vec![];
     let mut methods = vec![];
-    let mut tok;
     while lex.peek().is_newline() && lex.lookahead().is_tab() {
         lex.step();
         if !lex.next().is_identifier() {
             return err(&lex, "field name after tab");
         }
         let field_name = lex.slice().to_string();
-        tok = lex.next();
-        let mut fn_generic_types = vec![];
-        if tok == Some(Ok(Token::LessThan)) {
-            fn_generic_types = parse_generic_types(lex)?;
-            tok = lex.next();
-        }
-        if tok.is_type() {
-            if !fn_generic_types.is_empty() {
-                return err(&lex, "field type");
-            }
-            fields.push((field_name, parse_type(lex, &generic_types)?));
-        } else if tok == Some(Ok(Token::Pipe)) {
+        let (param_names, tok) = parse_params(lex);
+        if tok.is_colon() {
             methods.push(parse_function(
                 lex,
                 field_name,
-                &generic_types,
-                fn_generic_types,
+                param_names,
+                &generics,
                 true,
-                1,
-            )?);
+                2,
+            )?)
+        } else if tok.is_type() {
+            fields.push((field_name, parse_type(lex, &generics)?));
         } else {
-            return err(&lex, "field type");
+            return err(&lex, "field type or `:` for method");
         }
     }
     Ok(Struct {
         name,
-        generic_types,
+        generics,
         fields,
         methods,
     })
@@ -225,29 +200,23 @@ fn parse_impl(
     }
     let trait_name = lex.slice().to_string();
     let mut methods = vec![];
-    let mut tok;
     while lex.peek().is_newline() && lex.lookahead().is_tab() {
         lex.step();
         if !lex.next().is_identifier() {
             return err(&lex, "method name after tab");
         }
         let method_name = lex.slice().to_string();
-        tok = lex.next();
-        let mut fn_generic_types = vec![];
-        if tok == Some(Ok(Token::LessThan)) {
-            fn_generic_types = parse_generic_types(lex)?;
-            tok = lex.next();
-        }
-        if tok != Some(Ok(Token::Pipe)) {
-            return err(&lex, "`|` after method name");
+        let (param_names, tok) = parse_params(lex);
+        if !tok.is_colon() {
+            return err(&lex, "`:` for method");
         }
         methods.push(parse_function(
             lex,
             method_name,
+            param_names,
             &generic_types,
-            fn_generic_types,
             true,
-            1,
+            2,
         )?);
     }
     Ok(Implementation {
@@ -258,27 +227,37 @@ fn parse_impl(
     })
 }
 
+fn parse_params(lex: &mut Lexer<Token>) -> (Vec<String>, Option<Result<Token, ()>>) {
+    let mut param_names = vec![];
+    let mut tok = lex.next();
+    while tok.is_identifier() {
+        param_names.push(lex.slice().to_string());
+        tok = lex.next();
+    }
+    (param_names, tok)
+}
+
 fn parse_signature(
     lex: &mut Lexer<Token>,
     name: String,
-    parent_generic_types: &Vec<String>,
-    fn_generic_types: Vec<String>,
+    param_names: Vec<String>,
+    parent_generics: &Vec<String>,
     is_method: bool,
 ) -> Result<TypeSignature, String> {
     let mut signature = TypeSignature {
         name,
-        arg_types: vec![],
-        generic_types: fn_generic_types.clone(),
+        param_names,
+        param_types: vec![],
+        generics: vec![],
         return_types: vec![],
         is_method,
     };
-    let mut available_generic_types = parent_generic_types.clone();
-    available_generic_types.extend(fn_generic_types);
+    let available_generics = parent_generics.clone();
     let mut tok = lex.next();
     while tok.is_type() {
         signature
-            .arg_types
-            .push(parse_type(lex, &available_generic_types)?);
+            .param_types
+            .push(parse_type(lex, &available_generics)?);
         tok = lex.next();
     }
     if !tok.is_newline() {
@@ -288,7 +267,7 @@ fn parse_signature(
         while lex.next().is_type() {
             signature
                 .return_types
-                .push(parse_type(lex, &available_generic_types)?);
+                .push(parse_type(lex, &available_generics)?);
         }
     }
     Ok(signature)
@@ -297,69 +276,28 @@ fn parse_signature(
 fn parse_function(
     lex: &mut Lexer<Token>,
     name: String,
-    parent_generic_types: &Vec<String>,
-    fn_generic_types: Vec<String>,
+    param_names: Vec<String>,
+    parent_generics: &Vec<String>,
     is_method: bool,
     indent: usize,
 ) -> Result<Function, String> {
     let mut func = Function {
-        signature: parse_signature(lex, name, parent_generic_types, fn_generic_types, is_method)?,
-        equations: vec![],
+        signature: parse_signature(lex, name, param_names, parent_generics, is_method)?,
+        body: vec![],
     };
-    if func.signature.arg_types.is_empty() {
-        let mut body = vec![];
-        lex.step_before();
-        while lex.peek().is_tab() && lex.skip_indents(indent + 1) {
-            body.push(parse_expression(lex)?);
-            lex.step_before();
+    let mut indents = indent;
+    let mut tok;
+    while indents >= indent {
+        // TODO: need to handle indent level when returning, such as inside another function
+        (indents, tok) = lex.skip_indents();
+        if tok.is_newline() {
+            lex.next();
+            continue;
         }
-        func.equations.push(Equation {
-            parameters_list: vec![],
-            guard: None,
-            body,
-        });
-        return Ok(func);
-    }
-    let mut known_param = 1;
-    while known_param != 0 {
-        known_param = func.signature.arg_types.len();
-        let mut eq = Equation {
-            parameters_list: vec![],
-            guard: None,
-            body: vec![],
-        };
-        if !lex.skip_indents(indent) {
-            return err(lex, "indentation");
+        if indents > indent {
+            return err(lex, "newline after empty line");
         }
-        for _ in 0..known_param {
-            let pattern = parse_parameter(lex)?;
-            if matches!(pattern, Pattern::Variable(_) | Pattern::Wildcard) {
-                known_param -= 1;
-            }
-            eq.parameters_list.push(pattern);
-        }
-        let mut tok = lex.next();
-        if tok.is_if() {
-            eq.guard = Some(parse_expression(lex)?);
-            tok = lex.next();
-            known_param = 1;
-        }
-        if !tok.is_colon() {
-            return err(lex, "`:` after function parameters");
-        }
-        if !lex.peek().is_newline() {
-            eq.body.push(parse_expression(lex)?);
-            if !lex.next().is_newline() {
-                return err(lex, "newline after function body expression");
-            }
-        } else {
-            lex.step_before();
-            while lex.peek().is_tab() && lex.skip_indents(indent + 1) {
-                eq.body.push(parse_expression(lex)?);
-                lex.step_before();
-            }
-        }
-        func.equations.push(eq);
+        func.body.push(parse_expression(lex)?);
     }
     Ok(func)
 }
@@ -497,14 +435,14 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
     Ok(result)
 }
 
-fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Type, String> {
+fn parse_type(lex: &mut Lexer<Token>, generics: &Vec<String>) -> Result<Type, String> {
     let mut result = match lex.slice() {
         "(" => {
             let mut arg_types = vec![];
             let mut return_types = vec![];
             let mut tok = lex.next();
             while tok.is_type() {
-                arg_types.push(parse_type(lex, generic_types)?);
+                arg_types.push(parse_type(lex, generics)?);
                 tok = lex.next();
             }
             if !tok.is_arrow() {
@@ -512,7 +450,7 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
             }
             tok = lex.next();
             while tok.is_type() {
-                return_types.push(parse_type(lex, generic_types)?);
+                return_types.push(parse_type(lex, generics)?);
                 tok = lex.next();
             }
             if !tok.is_right_paren() {
@@ -524,7 +462,7 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
             if !lex.next().is_type() {
                 return err(lex, "type after `[`");
             }
-            let inner_type = parse_type(lex, generic_types)?;
+            let inner_type = parse_type(lex, generics)?;
             if lex.next() != Some(Ok(Token::RightBracket)) {
                 return err(lex, "closing bracket `]`");
             }
@@ -534,7 +472,7 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
             if !lex.next().is_type() {
                 return err(lex, "type after `*`");
             }
-            let inner_type = parse_type(lex, generic_types)?;
+            let inner_type = parse_type(lex, generics)?;
             Type::Reference(Box::new(inner_type))
         }
         _ => {
@@ -543,7 +481,7 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
                 "Z64" => Type::Integer,
                 "R64" => Type::Float,
                 "String" => Type::String,
-                tok if generic_types.contains(&tok.to_string()) => Type::Generic(tok.to_string()),
+                tok if generics.contains(&tok.to_string()) => Type::Generic(tok.to_string()),
                 _ => return err(lex, "type"),
             };
             if lex.peek() == Some(Ok(Token::LeftBracket)) {
@@ -569,7 +507,7 @@ fn parse_type(lex: &mut Lexer<Token>, generic_types: &Vec<String>) -> Result<Typ
             Some(Ok(Token::Bang)) => {
                 lex.next();
                 lex.next();
-                result = Type::Result(Box::new(result), Box::new(parse_type(lex, generic_types)?));
+                result = Type::Result(Box::new(result), Box::new(parse_type(lex, generics)?));
             }
             _ => break,
         }

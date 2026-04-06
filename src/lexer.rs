@@ -318,7 +318,7 @@ impl CheckToken for Option<Result<Token, ()>> {
 }
 
 pub trait Lookahead {
-    fn skip_indents(&mut self, indent: usize) -> bool;
+    fn skip_indents(&mut self) -> (usize, Option<Result<Token, ()>>);
     fn step_before(&mut self);
     fn step(&mut self) -> Option<Result<Token, ()>>;
     fn peek(&mut self) -> Option<Result<Token, ()>>;
@@ -326,13 +326,16 @@ pub trait Lookahead {
 }
 
 impl<'source> Lookahead for Lexer<'source, Token> {
-    fn skip_indents(&mut self, indent: usize) -> bool {
-        for _ in 0..indent {
-            if !self.next().is_tab() {
-                return false;
+    fn skip_indents(&mut self) -> (usize, Option<Result<Token, ()>>) {
+        let mut tok;
+        for i in 0.. {
+            tok = self.peek();
+            if !tok.is_tab() {
+                return (i, tok);
             }
+            self.next();
         }
-        true
+        unreachable!()
     }
 
     fn step_before(&mut self) {
