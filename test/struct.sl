@@ -7,17 +7,16 @@ Person<T> =
 	age Z64
 	items T[5]
 
-	add_item | T
-	item: .items << item
+	addItem item: 'T
+		.items << item
 
-	get_items |-> *T[5]
+	getItems :-> *T[5]
 		*.items
 
 Animal:
-	grow_up | Z64 -> Z64
+	growUp years: Z64 -> Z64
 
 Person<T> => Animal
-	grow_up | Z64 -> Z64
-	years:
+	growUp years: Z64 -> Z64
 		.age += years
 		.age

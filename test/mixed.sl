@@ -9,34 +9,27 @@ myVar :- "this is an immutable variable"
 
 myMutable := "this is a mutable variable"
 
-mySimpleFunc |-> String
+mySimpleFunc :-> String
 	"this is a function with no parameters and returns a string"
 
 \ this function takes in two Strings and returns a String
-greet | String String -> String
-theirName myName:
+greet theirName myName: String String -> String
 	"Hello {theirName}! My name is {myName}."
 
 \ this function has a parameter but returns nothing
-printGreet | String
-"simple":
-	cout <| greet("Andy" "John")
-"what":
-	cout <| greet("Beta" "Alpha")
-else:
-	cout << "Unknown input: " <| else
+printGreet else: String
+	result := "Unknown input: {else}"
+	result = greet("Andy" "John") <- else == "simple" ; result
+	result = greet("Alpha" "Beta") <- else == "what" ; result
+	cout <| result
 
 \ scenarios where pattern matching is more useful
-factorial | Z64 -> Z64
-0: 1
-1: 1
-n: n * factorial(n-1)
+factorial n: Z64 -> Z64
+	factorial(n-1) <- n > 1 ; 1
 
 \ tail-recursive
-factorial_tail | Z64 Z64 -> Z64
-0 _: 1
-1 total: total
-n total: factorial_tail(n-1 total*n)
+factorialTail n total: Z64 Z64 -> Z64
+	factorialTail(n-1 total*n) <- n > 1 ; total
 
 \ struct declaration with generic type `T`
 Person<T> =
@@ -44,32 +37,27 @@ Person<T> =
 	age Z64
 	items T[2]
 
-	add_item | T
-	item: .items << item
+	addItem item: 'T
+		.items << item
 
-	get_items |-> *T[2]
+	getItems :-> *'T[2]
 		*.items
 
 \ simple trait
 Animal:
-	grow_up | Z64 -> Z64
+	growUp years: Z64 -> Z64
 
 \ implement trait for struct
 Person<T> => Animal
-	grow_up | Z64 -> Z64
-	years:
+	growUp years: Z64 -> Z64
 		.age += years
 		.age
 
-main | [String]
-[]: cout <| "Usage: main [-h] <command> <..args>"
-["fac" n]: cout <| factorial_tail(n.parse().unwrap() 1)
-["people"]:
+main args: [String]
+	output := "invalid argument(s) `{args.join(" ")}`"
+	output = "Usage: <exe_name> [-h] <command> <..args>" <- args.is_empty() ; output
+	output = "{factorialTail(args[1].parse().unwrap() 1)}" <- args.len() == 2 && args[0] == "fac" ; output
 	john := Person("John" 21 ["car keys" "credit card"])
 	john.growUp(3)
-	cout <| john.age  \ should print "24"
-["-h" "fac"]:
-	cout <| "Calculates the factorial.\nUsage: main fac <Integer>"
-args:
-	cout <| "invalid input `main {args.join(" ")}`"
-	main([])
+	output = "{john.age}" <- args[0] == "people" ; output
+	cout <| output

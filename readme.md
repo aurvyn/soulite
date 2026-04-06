@@ -22,33 +22,24 @@ mySpecified: String = "I'm also a mutable variable"
 
 \\ this is a multi-line doc-comment to be utilized by IDEs.
 \\ no parameters, returns a string.
-helloWorld |-> String
+helloWorld :-> String
 	"Hello world!"
 
 \\ 2 parameters, returns a string.
-greet | String String -> String
-theirName myName:
+greet theirName myName: String String -> String
 	"Hello {theirName}! I'm {myName}."
 
 \\ has a parameter, returns nothing.
 \\ prints greeting to console based on input.
-greetFriend | String
-"Ferris":
-	cout <| greet("Ferris" "a crustacean too")
-"Octocat":
-	cout <| greet("Octocat" "in a repo")
-creature:
-	cout << "Unknown friend: " <| creature
+greetFriend creature: String
+	output := "Unknown friend: {creature}"
+	output = greet(creature "a crustacean too") <- creature == "Ferris" ; output
+	output = greet(creature "in a repo") <- creature == "Octocat" ; output
+	cout <| output
 ```
 
 > [!TIP]
-> Functions are capable of pattern matching, in a style similar to Haskell.
-> ```
-> <functionName> | [argTypes...] [-> returnTypes...]
-> <patterns...> [<- guard]:
-> 	<returnValues...>
-> ```
-> It may also be helpful to read `<-` as `if`, since it's also used in ternary operations:
+> It may also be helpful to read `<-` as `if`, since it's used in ternary operations and also in matching pattern guards. A shorter ternary operation would look like the following:
 > ```
 > response := "ready" <- is_ready ; "not yet"
 > ```
@@ -56,15 +47,12 @@ creature:
 Here are some more advanced examples:
 
 ```
-\\ a scenario where pattern matching is more useful!
-factorial | Z64 -> Z64
-n <- n < 2: 1
-n: n * factorial(n-1)
+factorial n: Z64 -> Z64
+	factorial(n-1) <- n > 1 ; 1
 
 \\ tail-recursive version.
-factorialTail | Z64 Z64 -> Z64
-n total <- n < 2: total
-n total: factorialTail(n-1 total*n)
+factorialTail n total: Z64 Z64 -> Z64
+	factorialTail(n-1 total*n) <- n > 1 ; total
 
 \\ a simple struct.
 Item =
@@ -77,20 +65,19 @@ Person<T> =
 	age Z64
 	items T[2]
 
-	addItem | T
-	item: .items << item
+	addItem: 'T
+		.items << item
 
-	getItems |-> *T[2]
+	getItems :-> *'T[2]
 		*.items
 
 \\ a simple trait.
 Animal:
-	growUp | Z64 -> Z64
+	growUp years: Z64 -> Z64
 
 \\ implement the Animal trait for Person struct...
 Person<T> => Animal
-	growUp | Z64 -> Z64
-	years:
+	growUp years: Z64 -> Z64
 		.age += years
 		.age
 ```
@@ -98,18 +85,14 @@ Person<T> => Animal
 > [!IMPORTANT]
 > To actually run some code in Soulite, you would want a `main` function:
 > ```
-> main | [String]
-> []: cout <| "Usage: <programName> [-h] <command> <..args>"
-> ["fac" n]: cout <| factorialTail(n.parse().unwrap() 1)
-> ["people"]:
+> main args: [String]
+> 	output := "invalid argument(s) `{args.join(" ")}`"
+> 	output = "Usage: <exe_name> [-h] <command> <..args>" <- args.is_empty() ; output
+> 	output = "{factorialTail(args[1].parse().unwrap() 1)}" <- args.len() == 2 && args[0] == "fac" ; output
 > 	john := Person("John" 21 ["car keys" "credit card"])
 > 	john.growUp(3)
-> 	cout <| john.age  \ should print "24"
-> ["-h" "fac"]:
-> 	cout <| "Calculates the factorial.\nUsage: <exe_name> fac <Integer>"
-> args:
-> 	cout <| "invalid input `{args.join(" ")}`"
-> 	main([])
+> 	output = "{john.age}" <- args[0] == "people" ; output
+> 	cout <| output
 > ```
 
 Check out the [wiki](https://github.com/aurvyn/soulite/wiki) for an in-depth exploration!
