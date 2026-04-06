@@ -39,9 +39,10 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
             Token::Plus => program.imports.push(parse_import(&mut lex)?),
             Token::Identifier => {
                 let name = lex.slice().to_string();
-                let (param_names, tok) = parse_params(&mut lex);
+                let (param_names, mut tok) = parse_params(&mut lex);
                 if tok.is_colon() {
-                    if lex.peek().is_arrow() {
+                    tok = lex.peek();
+                    if tok.is_arrow() || tok.is_type() {
                         program.functions.push(parse_function(
                             &mut lex,
                             name,
