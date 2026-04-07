@@ -7,7 +7,7 @@ greet theirName myName: String String -> String?!Z64??
 	(|(|)|)' <- theirName == "Tom" && myName == "Jerry" ; (|"Hello {theirName}! My name is {myName}."|)!
 
 printGreet else: String
-	result := "Unknown input: {else}"
+	result ;= "Unknown input: {else}"
 	result = greet("Tom" "Jerry").unwrap_err().unwrap().unwrap() <- else == "simple" ; result
 	result = greet("Alpha" "Beta").unwrap().unwrap() <- else == "what" ; result
 	cout <| result
@@ -29,7 +29,7 @@ factorialTail n total: Z64 Z64 -> Z64
 	factorialTail(n-1 total*n) <- n > 1 ; total
 
 main args: [String]
-	output := "invalid argument(s) `{args.join(" ")}`"
+	output ;= "invalid argument(s) `{args.join(" ")}`"
 	output = "Usage: <exe_name> [-h] <command> <..args>" <- args.is_empty() ; output
 	output = "{factorialTail(args[1].parse().unwrap() 1)}" <- args.len() == 2 && args[0] == "fac" ; output
 	cout <| output

@@ -2,8 +2,8 @@ use std::vec;
 
 use crate::{
     ast::{
-        AssignType, Expr, Function, Implementation, Import, Literal, Pattern, Program, Struct,
-        Trait, Type, TypeSignature,
+        AssignType, Expr, Function, Impl, Import, Literal, Pattern, Program, Struct, Trait, Type,
+        TypeSignature,
     },
     lexer::{CheckToken, Lookahead, Token},
 };
@@ -42,7 +42,14 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                 let (param_names, mut tok) = parse_params(&mut lex);
                 if tok.is_colon() {
                     tok = lex.peek();
-                    if tok.is_arrow() || tok.is_type() {
+                    if param_names.is_empty() && !tok.is_arrow() {
+                        program.variables.push(parse_assignment(
+                            &mut lex,
+                            name,
+                            AssignType::Static,
+                            false,
+                        )?)
+                    } else {
                         program.functions.push(parse_function(
                             &mut lex,
                             name,
@@ -51,16 +58,26 @@ pub fn parse<const IS_DEBUG: bool>(file_name: &str) -> Result<Program, String> {
                             false,
                             1,
                         )?)
-                    } else {
-                        program.variables.push(parse_assignment(
-                            &mut lex,
-                            name,
-                            AssignType::Static,
-                        )?)
                     }
+                } else if tok.is_semicolon() {
+                    program.variables.push(parse_assignment(
+                        &mut lex,
+                        name,
+                        AssignType::Static,
+                        true,
+                    )?)
                 } else {
                     return err(&lex, "variable or function marker");
                 }
+            }
+            Token::ConstIdentifier => {
+                let name = lex.slice().to_string();
+                if !lex.next().is_colon() {
+                    return err(&lex, "`:` after const name");
+                }
+                program
+                    .variables
+                    .push(parse_assignment(&mut lex, name, AssignType::Const, false)?)
             }
             Token::Type => {
                 let name = lex.slice().to_string();
@@ -195,7 +212,7 @@ fn parse_impl(
     lex: &mut Lexer<Token>,
     struct_name: String,
     generic_types: Vec<String>,
-) -> Result<Implementation, String> {
+) -> Result<Impl, String> {
     if !lex.next().is_type() {
         return err(lex, "trait name after `=>`");
     }
@@ -220,7 +237,7 @@ fn parse_impl(
             2,
         )?);
     }
-    Ok(Implementation {
+    Ok(Impl {
         struct_name,
         trait_name,
         generic_types,
@@ -299,6 +316,9 @@ fn parse_function(
             return err(lex, "newline after empty line");
         }
         func.body.push(parse_expression(lex)?);
+        if !lex.next().is_newline() {
+            return err(lex, "newline after expression");
+        }
     }
     Ok(func)
 }
@@ -319,28 +339,17 @@ fn parse_generic_types(lex: &mut Lexer<Token>) -> Result<Vec<String>, String> {
 fn parse_assignment(
     lex: &mut Lexer<Token>,
     name: String,
-    mut assign_type: AssignType,
+    assign_type: AssignType,
+    mutable: bool,
 ) -> Result<Expr, String> {
-    let Some(Ok(mut tok)) = lex.next() else {
-        return err(lex, "expected token after colon");
-    };
     let mut type_hint = None;
-    if tok == Token::Type {
+    let mut tok = lex.next();
+    if tok.is_type() {
         type_hint = Some(parse_type(lex, &vec![])?);
-        if let Some(Ok(token)) = lex.next() {
-            tok = token;
-        } else {
-            return err(lex, "expected token after type");
-        };
+        tok = lex.next();
     }
-    let mutable = match tok {
-        Token::Colon => {
-            assign_type = AssignType::Const;
-            false
-        }
-        Token::Minus => false,
-        Token::Assign => true,
-        _ => return err(lex, "`-` or `=` after colon"),
+    if !tok.is_assign() {
+        return err(lex, "`=` after type or `:` or `;`");
     };
     Ok(Expr::Assign {
         name,
@@ -366,11 +375,16 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
         match tok {
             Token::Identifier => {
                 let name = lex.slice().to_string();
-                if lex.peek() != Some(Ok(Token::Colon)) {
-                    parse_identifier(lex, name)?
-                } else {
-                    lex.next();
-                    parse_assignment(lex, name, AssignType::Normal)?
+                match lex.peek() {
+                    Some(Ok(Token::Colon)) => {
+                        lex.next();
+                        parse_assignment(lex, name, AssignType::Normal, false)?
+                    }
+                    Some(Ok(Token::Semicolon)) => {
+                        lex.next();
+                        parse_assignment(lex, name, AssignType::Normal, true)?
+                    }
+                    _ => parse_identifier(lex, name)?,
                 }
             }
             Token::ParamIdentifier => {
@@ -434,10 +448,9 @@ fn parse_primary(lex: &mut Lexer<Token>) -> Result<Expr, String> {
     Ok(result)
 }
 
-fn parse_num_type_bits(lex: &mut Lexer<Token>) -> Result<u8, String> {
-    if lex.next() == Some(Ok(Token::Integer)) // currently `N 32` is valid
-    && let Ok(bits) = lex.slice().parse::<u8>()
-    && [8, 16, 32, 64, 128].contains(&bits)
+fn parse_num_type_bits(lex: &Lexer<Token>, bits: &str) -> Result<u8, String> {
+    if let Ok(bits) = bits.parse::<u8>()
+        && [8, 16, 32, 64, 128].contains(&bits)
     {
         Ok(bits)
     } else {
@@ -487,9 +500,9 @@ fn parse_type(lex: &mut Lexer<Token>, generics: &Vec<String>) -> Result<Type, St
         }
         _ => {
             let result = match lex.slice() {
-                "N" => Type::Unsigned(parse_num_type_bits(lex)?),
-                "Z" => Type::Integer(parse_num_type_bits(lex)?),
-                "R" => Type::Float(parse_num_type_bits(lex)?),
+                s if s.starts_with('N') => Type::Unsigned(parse_num_type_bits(lex, &s[1..])?),
+                s if s.starts_with('Z') => Type::Integer(parse_num_type_bits(lex, &s[1..])?),
+                s if s.starts_with('R') => Type::Float(parse_num_type_bits(lex, &s[1..])?),
                 "String" => Type::String,
                 tok if generics.contains(&tok.to_string()) => Type::Generic(tok.to_string()),
                 _ => return err(lex, "type"),

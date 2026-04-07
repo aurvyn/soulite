@@ -3,13 +3,23 @@ use logos::{Lexer, Logos};
 #[derive(Logos, Clone, Debug, PartialEq)]
 #[logos(skip r" +")]
 pub enum Token {
-    #[regex(r"\p{Ll}[_\p{L}]*")]
+    /// First character must be a lowercase letter,
+    /// rest must be either letters or numbers
+    #[regex(r"\p{Ll}[\p{L}\d]*")]
     Identifier,
 
-    #[regex(r"_\p{Ll}[_\p{L}]*")]
+    /// First character must be a capital letter, rest must be either
+    /// capital letters or numbers with underscores only allowed in between
+    #[regex(r"\p{Lu}[\p{Lu}\d]*(?:_[\p{Lu}\d]+)*")]
+    ConstIdentifier,
+
+    /// Same as [`Token::Identifier`] but with a starting underscore
+    #[regex(r"_\p{Ll}[\p{L}\d]*")]
     ParamIdentifier,
 
-    #[regex(r"\p{Lu}\p{L}*")]
+    /// First character must be a capital letter, rest must be either
+    /// letters or numbers with at least 1 lowercase letter or number
+    #[regex(r"\p{Lu}[\p{L}\d]*[\p{Ll}\d][\p{L}\d]*")]
     Type,
 
     #[regex(r"(?:\d+\.\d*|\.\d+)")]
@@ -256,6 +266,7 @@ impl Token {
 
 pub trait CheckToken {
     fn is_arrow(&self) -> bool;
+    fn is_assign(&self) -> bool;
     fn is_colon(&self) -> bool;
     fn is_identifier(&self) -> bool;
     fn is_if(&self) -> bool;
@@ -271,6 +282,10 @@ pub trait CheckToken {
 impl CheckToken for Option<Result<Token, ()>> {
     fn is_arrow(&self) -> bool {
         self == &Some(Ok(Token::Arrow))
+    }
+
+    fn is_assign(&self) -> bool {
+        self == &Some(Ok(Token::Assign))
     }
 
     fn is_colon(&self) -> bool {

@@ -3,11 +3,11 @@
 \ this imports `cout` from the standard library
 +std:cout
 
-myConst :: "this is a const variable"  \ only valid in global scope
+MY_CONST := "this is a const variable"  \ only valid in global scope
 
-myVar :- "this is an immutable variable"
+myVar := "this is an immutable variable"
 
-myMutable := "this is a mutable variable"
+myMutable ;= "this is a mutable variable"
 
 mySimpleFunc :-> String
 	"this is a function with no parameters and returns a string"
@@ -18,7 +18,7 @@ greet theirName myName: String String -> String
 
 \ this function has a parameter but returns nothing
 printGreet else: String
-	result := "Unknown input: {else}"
+	result ;= "Unknown input: {else}"
 	result = greet("Andy" "John") <- else == "simple" ; result
 	result = greet("Alpha" "Beta") <- else == "what" ; result
 	cout <| result
@@ -54,10 +54,10 @@ Person<T> => Animal
 		.age
 
 main args: [String]
-	output := "invalid argument(s) `{args.join(" ")}`"
+	output ;= "invalid argument(s) `{args.join(" ")}`"
 	output = "Usage: <exe_name> [-h] <command> <..args>" <- args.is_empty() ; output
 	output = "{factorialTail(args[1].parse().unwrap() 1)}" <- args.len() == 2 && args[0] == "fac" ; output
-	john := Person("John" 21 ["car keys" "credit card"])
+	john ;= Person("John" 21 ["car keys" "credit card"])
 	john.growUp(3)
 	output = "{john.age}" <- args[0] == "people" ; output
 	cout <| output

@@ -3,11 +3,14 @@
 +std:cout  \ imports cout from std
 
 \\ this is a doc-comment
-\\ my_const is a const float
-my_const :: 3.14
+\\ MY_CONST is a const float
+MY_CONST := 3.14
 
-my_int :- 32
+myInt: Z32 = 32
 
-my_str := "this is a string" <- 1 == 1 ; "unreachable"
+main args: [String]
+	myStr ;= "violence" <- 1 == 1 ; "peace"
+	myStr = "{myStr} begets more {myStr}"
+	cout <| myStr
 
 \ end

@@ -356,19 +356,19 @@ impl ToRust for Function {
         format!(
             "{} {{{}}}",
             self.signature.to_rust(),
-            self.body.to_rust(",")
+            self.body.to_rust(";") + ";"
         )
     }
 }
 
-pub struct Implementation {
+pub struct Impl {
     pub struct_name: String,
     pub trait_name: String,
     pub generic_types: Vec<String>,
     pub methods: Vec<Function>,
 }
 
-impl ToRust for Implementation {
+impl ToRust for Impl {
     fn to_rust(&self) -> String {
         let methods = self.methods.to_rust("");
         let generic_types = if self.generic_types.is_empty() {
@@ -433,7 +433,7 @@ pub struct Trait {
 
 impl ToRust for Trait {
     fn to_rust(&self) -> String {
-        let signatures = self.signatures.to_rust(";") + ";";
+        let signatures = self.signatures.to_rust(";");
         let generics = if self.generics.is_empty() {
             String::new()
         } else {
@@ -484,7 +484,7 @@ pub struct Program {
     pub imports: Vec<Import>,
     pub traits: Vec<Trait>,
     pub structs: Vec<Struct>,
-    pub impls: Vec<Implementation>,
+    pub impls: Vec<Impl>,
     pub functions: Vec<Function>,
     pub variables: Vec<Expr>,
 }
