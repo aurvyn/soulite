@@ -31,16 +31,16 @@ factorial n: Z64 -> Z64
 factorialTail n total: Z64 Z64 -> Z64
 	factorialTail(n-1 total*n) <- n > 1 ; total
 
-\ struct declaration with generic type `T`
-Person<T> =
-	name String
-	age Z64
-	items T[2]
+\ struct declaration with generic type `t`
+Person =
+	name: String
+	age; Z64
+	items; t[2]
 
-	addItem item: 'T
+	addItem item: t
 		.items << item
 
-	getItems :-> *'T[2]
+	getItems :-> *t[2]
 		*.items
 
 \ simple trait
@@ -48,7 +48,7 @@ Animal:
 	growUp years: Z64 -> Z64
 
 \ implement trait for struct
-Person<T> => Animal
+Person => Animal
 	growUp years: Z64 -> Z64
 		.age += years
 		.age

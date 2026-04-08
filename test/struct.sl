@@ -1,22 +1,22 @@
 Item =
-	name String
-	desc String
+	name: String
+	amount; N32
 
-Person<T> =
-	name String
-	age Z64
-	items T[5]
+Person =
+	name: String
+	age; N8
+	items; t[5]
 
-	addItem item: 'T
+	addItem item: t
 		.items << item
 
-	getItems :-> *T[5]
+	getItems :-> *t[5]
 		*.items
 
 Animal:
-	growUp years: Z64 -> Z64
+	growUp years: N8 -> N8
 
-Person<T> => Animal
-	growUp years: Z64 -> Z64
+Person => Animal
+	growUp years: N8 -> N8
 		.age += years
 		.age

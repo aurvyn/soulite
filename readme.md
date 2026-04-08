@@ -13,12 +13,12 @@ An experimental compiled programming language focused on making the syntax as co
 \ this imports `cout` from the standard library...
 +std:cout
 
-myConst :: "I'm a const variable"
-myVar :- "I'm an immutable variable"
-myMutable := "I'm a mutable variable"
+MY_CONST := "I'm a const variable"
+myVar := "I'm a static variable"
+myMutable ;= "I'm a mutable static variable"
 
 \ adding an explicit type works too!
-mySpecified: String = "I'm also a mutable variable"
+mySpecified: String = "I'm also a static variable"
 
 \\ this is a multi-line doc-comment to be utilized by IDEs.
 \\ no parameters, returns a string.
@@ -32,7 +32,7 @@ greet theirName myName: String String -> String
 \\ has a parameter, returns nothing.
 \\ prints greeting to console based on input.
 greetFriend creature: String
-	output := "Unknown friend: {creature}"
+	output ;= "Unknown friend: {creature}"
 	output = greet(creature "a crustacean too") <- creature == "Ferris" ; output
 	output = greet(creature "in a repo") <- creature == "Octocat" ; output
 	cout <| output
@@ -56,19 +56,19 @@ factorialTail n total: Z64 Z64 -> Z64
 
 \\ a simple struct.
 Item =
-	name String
-	amount Z64
+	name: String
+	amount; Z64
 
-\\ now with generic type `T`!
-Person<T> =
-	name String
-	age Z64
-	items T[2]
+\\ now with generic type `t`!
+Person =
+	name: String
+	age; Z64
+	items; t[2]
 
-	addItem: 'T
+	addItem: t
 		.items << item
 
-	getItems :-> *'T[2]
+	getItems :-> *t[2]
 		*.items
 
 \\ a simple trait.
@@ -76,7 +76,7 @@ Animal:
 	growUp years: Z64 -> Z64
 
 \\ implement the Animal trait for Person struct...
-Person<T> => Animal
+Person => Animal
 	growUp years: Z64 -> Z64
 		.age += years
 		.age
@@ -86,10 +86,10 @@ Person<T> => Animal
 > To actually run some code in Soulite, you would want a `main` function:
 > ```
 > main args: [String]
-> 	output := "invalid argument(s) `{args.join(" ")}`"
+> 	output ;= "invalid argument(s) `{args.join(" ")}`"
 > 	output = "Usage: <exe_name> [-h] <command> <..args>" <- args.is_empty() ; output
 > 	output = "{factorialTail(args[1].parse().unwrap() 1)}" <- args.len() == 2 && args[0] == "fac" ; output
-> 	john := Person("John" 21 ["car keys" "credit card"])
+> 	john ;= Person("John" 21 ["car keys" "credit card"])
 > 	john.growUp(3)
 > 	output = "{john.age}" <- args[0] == "people" ; output
 > 	cout <| output
