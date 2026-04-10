@@ -12,19 +12,19 @@ Inductive soulite_type: Type :=
 .
 
 Inductive binop: Type :=
-| Add           (* +  *)
-| Sub           (* -  *)
-| Mul           (* *  *)
-| Div           (* /  *)
-| LessThan      (* <  *)
-| Lte           (* <= *)
-| GreaterThan   (* >  *)
-| Gte           (* >= *)
-| Equal         (* == *)
-| And           (* && *)
-| Or            (* || *)
-| ShiftLeft     (* << *)
-| EndLeft       (* <| *)
+| PlusOp        (* +  *)
+| MinusOp       (* -  *)
+| MultOp        (* *  *)
+| DivOp         (* /  *)
+| LtOp          (* <  *)
+| LteOp         (* <= *)
+| GtOp          (* >  *)
+| GteOp         (* >= *)
+| EqualOp       (* == *)
+| AndOp         (* && *)
+| OrOp          (* || *)
+| ShiftLeftOp   (* << *)
+| EndLeftOp     (* <| *)
 .
 
 (* leave out This, None, Ref, Some, Ok, and Err expressions *)

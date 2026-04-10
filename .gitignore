@@ -1,3 +1,15 @@
 /target
 
 test/*.rs
+
+# build artifacts from _CoqProject
+.makefile.d
+makefile
+makefile.conf
+
+# build artifacts from Rocq's makefile
+*.aux
+*.glob
+*.vo
+*.vok
+*.vos
