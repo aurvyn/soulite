@@ -97,6 +97,21 @@ Person => Animal
 
 Check out the [wiki](https://github.com/aurvyn/soulite/wiki) for an in-depth exploration!
 
+# Development
+
+To use Soulite, compile and run by using cargo:
+
+```bash
+cargo run -- --help
+```
+
+To run the Rocq files for formal verification, generate the makefile and compile:
+
+```bash
+coq_makefile -f _CoqProject -o makefile
+make
+```
+
 # Milestones
 
 <details>
