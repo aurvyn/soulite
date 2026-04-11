@@ -1,6 +1,7 @@
 From Stdlib Require Export String.
 From Stdlib Require Export ZArith.
 Open Scope string_scope.
+Open Scope Z_scope.
 
 (* leave out R, Ref, Option, Result, Generic, and Array types *)
 Inductive soulite_type: Type :=
@@ -20,31 +21,33 @@ Inductive binop: Type :=
 | LteOp         (* <= *)
 | GtOp          (* >  *)
 | GteOp         (* >= *)
-| EqualOp       (* == *)
+| EqOp          (* == *)
+| NotEqOp       (* != *)
 | AndOp         (* && *)
 | OrOp          (* || *)
 | ShiftLeftOp   (* << *)
 | EndLeftOp     (* <| *)
+| DotOp         (* .  *)
 .
 
 (* leave out This, None, Ref, Some, Ok, and Err expressions *)
 Inductive soulite_expr: Type :=
 | Skip
-| N (n: nat) (* assume in range of bits *)
-| Z (n: Z)   (* assume in range of bits *)
-| String (val: string)
-| Var (name: string)
-| List (exprs: list soulite_expr)
-| Binary (op: binop) (lhs rhs: soulite_expr)
-| Ternary (cond if_true if_false: soulite_expr)
-| Call (name: string) (args: list soulite_expr)
+| NExpr (n: nat) (* assume in range of bits *)
+| ZExpr (n: Z)   (* assume in range of bits *)
+| StringExpr (val: string)
+| VarExpr (name: string)
+| ListExpr (exprs: list soulite_expr)
+| BinaryExpr (op: binop) (lhs rhs: soulite_expr)
+| TernaryExpr (cond if_true if_false: soulite_expr)
+| CallExpr (name: string) (args: list soulite_expr)
 (* assume that type inferrence is not used and type is always provided *)
-| Declare (name: string) (mutable: bool) (expr: soulite_expr) (type: soulite_type)
-| Assign (name: string) (expr: soulite_expr)
-| Closure (args: list string) (body: soulite_expr)
-| While (cond body: soulite_expr)
-| Return (expr: soulite_expr)
-| Seq (e1 e2: soulite_expr)
+| DeclareExpr (name: string) (mutable: bool) (type: soulite_type) (expr: soulite_expr)
+| AssignExpr (name: string) (expr: soulite_expr)
+| ClosureExpr (args: list string) (body: soulite_expr)
+| WhileExpr (cond body: soulite_expr)
+| ReturnExpr (expr: soulite_expr)
+| SeqExpr (e1 e2: soulite_expr)
 .
 
 Record function := {
