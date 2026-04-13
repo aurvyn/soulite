@@ -6,7 +6,8 @@ Coercion StringExpr: string >-> sl_expr.
 
 Declare Custom Entry sl.
 Declare Scope sl_scope.
-Open Scope sl_scope.
+Delimit Scope sl_scope with sl.
+Open Scope sl.
 
 Notation "<{ e }>" := e
     (e custom sl, format "'[hv' <{ '/  ' '[v' e ']' '/' }> ']'"): sl_scope.
@@ -45,9 +46,11 @@ Infix "||" := (BinaryExpr OrOp)
 
 Notation "expr" := expr
     (in custom sl at level 0, expr constr at level 0).
-Notation "f ( x .. y )" := (CallExpr f (cons x .. (cons y nil) ..))
+Notation "f ( a .. z )" := (CallExpr f (cons a .. (cons z nil) ..))
     (in custom sl at level 0).
 Notation "[ type ]" := (TypeList type)
+    (in custom sl at level 70).
+Notation "[< a .. z >]" := (ListExpr (cons a .. (cons z nil) ..))
     (in custom sl at level 70).
 Notation "{ typeA .. typeZ -> ret_typeA .. ret_typeZ }" :=
     (TypeClosure
