@@ -71,16 +71,19 @@ Fixpoint to_val (e: sl_expr): option sl_val :=
     | NExpr n => Some (NVal n)
     | ZExpr n => Some (ZVal n)
     | StringExpr val => Some (StringVal val)
-    | ListExpr exprs => 
-        match List.fold_right (fun e acc =>
-            match acc with
-            | Some vs => match to_val e with
-                | Some v => Some (cons v vs)
-                | None => None end
-            | None => None
-            end) (Some nil) exprs with
-        | Some vs => Some (ListVal vs)
+    | ListExpr exprs =>
+        let fix test (tail: list sl_expr): option (list sl_val) :=
+            match tail with
+            | nil => Some nil
+            | cons x xs => match to_val x with
+                | None => None
+                | Some val => match test xs with
+                    | None => None
+                    | Some vals => Some (cons val vals)
+        end end end in
+        match test exprs with
         | None => None
+        | Some vals => Some (ListVal vals)
         end
     | ClosureExpr args body => Some (ClosureVal args body)
     | _ => None
