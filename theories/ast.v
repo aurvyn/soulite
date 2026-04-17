@@ -1,5 +1,6 @@
 From Stdlib Require Export String.
 From Stdlib Require Export ZArith.
+From Stdlib Require Export List.
 Open Scope string_scope.
 Open Scope Z_scope.
 
@@ -64,7 +65,7 @@ Definition to_val (e: sl_expr): option sl_val :=
 
 Lemma to_of_val v: to_val (of_val v) = Some v.
 Proof.
-    destruct v; try reflexivity.
+    destruct v; reflexivity.
 Qed.
 
 Lemma of_to_val e v: to_val e = Some v -> of_val v = e.
@@ -76,16 +77,16 @@ Qed.
 Fixpoint subst (x: string) (v: sl_val) (e: sl_expr): sl_expr :=
     match e with
     | ValExpr _ => e
-    | VarExpr name => if String.eqb name x then of_val v else VarExpr name
-    | ListExpr exprs => ListExpr (List.map (subst x v) exprs)
+    | VarExpr name => if eqb name x then of_val v else VarExpr name
+    | ListExpr exprs => ListExpr (map (subst x v) exprs)
     | BinaryExpr op lhs rhs => BinaryExpr op (subst x v lhs) (subst x v rhs)
     | TernaryExpr cond if_true if_false => TernaryExpr (subst x v cond) (subst x v if_true) (subst x v if_false)
-    | CallExpr func args => CallExpr (subst x v func) (List.map (subst x v) args)
+    | CallExpr func args => CallExpr (subst x v func) (map (subst x v) args)
     | DeclareExpr name mutable type expr => DeclareExpr name mutable type (subst x v expr)
     | AssignExpr name expr => AssignExpr name (subst x v expr)
-    | ClosureExpr args body => if List.existsb (String.eqb x) args then e else ClosureExpr args (subst x v body)
+    | ClosureExpr args body => if existsb (eqb x) args then e else ClosureExpr args (subst x v body)
     | WhileExpr cond body => WhileExpr (subst x v cond) (subst x v body)
-    | Seq exprs => Seq (List.map (subst x v) exprs)
+    | Seq exprs => Seq (map (subst x v) exprs)
     end.
 
 Record sl_function := {

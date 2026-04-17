@@ -16,13 +16,17 @@ Infix "." := (BinaryExpr DotOp)
     (in custom sl at level 10, left associativity): sl_scope.
 Infix "*" := (BinaryExpr MultOp)
     (in custom sl at level 20, left associativity): sl_scope.
-Infix "/" := (BinaryExpr DivOp)
+Infix "/" := (BinaryExpr QuotOp)
+    (in custom sl at level 20, left associativity): sl_scope.
+Infix "%" := (BinaryExpr RemOp)
     (in custom sl at level 20, left associativity): sl_scope.
 Infix "+" := (BinaryExpr PlusOp)
     (in custom sl at level 30, left associativity): sl_scope.
 Infix "-" := (BinaryExpr MinusOp)
     (in custom sl at level 30, left associativity): sl_scope.
 Infix "<<" := (BinaryExpr ShiftLeftOp)
+    (in custom sl at level 40, left associativity): sl_scope.
+Infix ">>" := (BinaryExpr ShiftRightOp)
     (in custom sl at level 40, left associativity): sl_scope.
 Infix "<|" := (BinaryExpr EndLeftOp)
     (in custom sl at level 40, left associativity): sl_scope.
