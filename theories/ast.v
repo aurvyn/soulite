@@ -1,8 +1,6 @@
-From Stdlib Require Export String.
-From Stdlib Require Export ZArith.
-From Stdlib Require Export List.
-Open Scope string_scope.
-Open Scope Z_scope.
+From Stdlib Require Import String.
+From Stdlib Require Import ZArith.
+From Stdlib Require Import List.
 
 (* leave out R, Ref, Option, Result, Generic, and Array types *)
 Inductive sl_type :=
@@ -29,8 +27,15 @@ Inductive binop :=
 | OrOp          (* || *)
 | ShiftLOp      (* << *)
 | ShiftROp      (* >> *)
-| EndLeftOp     (* <| *)
+| EndLOp     (* <| *)
 | DotOp         (* .  *)
+.
+
+Inductive sl_lit :=
+| LitN (n: nat)
+| LitZ (n: Z)
+| LitString (val: string)
+| LitList (vals: list sl_lit)
 .
 
 (* leave out This, None, Ref, Some, Ok, and Err expressions *)
@@ -48,10 +53,7 @@ Inductive sl_expr :=
 | WhileExpr (cond body: sl_expr)
 | Seq (exprs: list sl_expr)
 with sl_val :=
-| NVal (n: nat)
-| ZVal (n: Z)
-| StringVal (val: string)
-| ListVal (vals: list sl_val)
+| LitVal (lit: sl_lit)
 | ClosureVal (args: list string) (body: sl_expr)
 .
 
@@ -98,5 +100,3 @@ Record sl_function := {
 }.
 
 Definition program := prod (list sl_function) sl_expr.
-
-Definition empty_program: program := (nil, Skip).

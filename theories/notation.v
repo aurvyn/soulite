@@ -1,8 +1,10 @@
+From Stdlib Require Import String.
+From Stdlib Require Import ZArith.
 From Soulite Require Import ast.
 
-Coercion NExpr: nat >-> sl_expr.
-Coercion ZExpr: Z >-> sl_expr.
-Coercion StringExpr: string >-> sl_expr.
+Coercion LitN: nat >-> sl_lit.
+Coercion LitZ: Z >-> sl_lit.
+Coercion LitString: string >-> sl_lit.
 
 Declare Custom Entry sl.
 Declare Scope sl_scope.
@@ -24,19 +26,19 @@ Infix "+" := (BinaryExpr PlusOp)
     (in custom sl at level 30, left associativity): sl_scope.
 Infix "-" := (BinaryExpr MinusOp)
     (in custom sl at level 30, left associativity): sl_scope.
-Infix "<<" := (BinaryExpr ShiftLeftOp)
+Infix "<<" := (BinaryExpr ShiftLOp)
     (in custom sl at level 40, left associativity): sl_scope.
-Infix ">>" := (BinaryExpr ShiftRightOp)
+Infix ">>" := (BinaryExpr ShiftROp)
     (in custom sl at level 40, left associativity): sl_scope.
-Infix "<|" := (BinaryExpr EndLeftOp)
+Infix "<|" := (BinaryExpr EndLOp)
     (in custom sl at level 40, left associativity): sl_scope.
 Infix "<" := (BinaryExpr LtOp)
     (in custom sl at level 50): sl_scope.
-Infix "<=" := (BinaryExpr LteOp)
+Infix "<=" := (BinaryExpr LeOp)
     (in custom sl at level 50): sl_scope.
 Infix ">" := (BinaryExpr GtOp)
     (in custom sl at level 50): sl_scope.
-Infix ">=" := (BinaryExpr GteOp)
+Infix ">=" := (BinaryExpr GeOp)
     (in custom sl at level 50): sl_scope.
 Infix "==" := (BinaryExpr EqOp)
     (in custom sl at level 50): sl_scope.
