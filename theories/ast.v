@@ -1,4 +1,5 @@
 From Stdlib Require Import String.
+From Stdlib Require Import NArith.
 From Stdlib Require Import ZArith.
 From Stdlib Require Import List.
 
@@ -15,8 +16,8 @@ Inductive binop :=
 | PlusOp        (* +  *)
 | MinusOp       (* -  *)
 | MultOp        (* *  *)
-| QuotOp        (* /  *)
-| RemOp         (* %  *)
+| DivOp         (* /  *)
+| ModOp         (* %  *)
 | LtOp          (* <  *)
 | LeOp          (* <= *)
 | GtOp          (* >  *)
@@ -33,7 +34,7 @@ Inductive binop :=
 
 Inductive sl_lit :=
 | LitBool (b: bool)
-| LitN (n: nat)
+| LitN (n: N)
 | LitZ (n: Z)
 | LitString (val: string)
 | LitList (vals: list sl_lit)

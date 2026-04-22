@@ -3,7 +3,7 @@ From Stdlib Require Import ZArith.
 From Soulite Require Import ast.
 
 Coercion LitBool: bool >-> sl_lit.
-Coercion LitN: nat >-> sl_lit.
+Coercion LitN: N >-> sl_lit.
 Coercion LitZ: Z >-> sl_lit.
 Coercion LitString: string >-> sl_lit.
 
@@ -19,9 +19,9 @@ Infix "." := (BinaryExpr DotOp)
     (in custom sl at level 10, left associativity): sl_scope.
 Infix "*" := (BinaryExpr MultOp)
     (in custom sl at level 20, left associativity): sl_scope.
-Infix "/" := (BinaryExpr QuotOp)
+Infix "/" := (BinaryExpr DivOp)
     (in custom sl at level 20, left associativity): sl_scope.
-Infix "%" := (BinaryExpr RemOp)
+Infix "%" := (BinaryExpr ModOp)
     (in custom sl at level 20, left associativity): sl_scope.
 Infix "+" := (BinaryExpr PlusOp)
     (in custom sl at level 30, left associativity): sl_scope.
