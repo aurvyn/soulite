@@ -1,66 +1,61 @@
+From Stdlib Require Import String.
 From Stdlib Require Import ZArith.
 From stdpp Require Import gmap.
 From Soulite Require Import ast.
 From Soulite Require Import notation.
 
-Definition heap := gmap Z sl_val.
-Fixpoint heap_array (l: Z) (vals: list sl_val): heap :=
-    match vals with
-    | [] => gmap_empty
-    | val :: vals' => union {[l := val]} (heap_array (l + 1) vals')
+Record sl_state := {
+  env: gmap string sl_val;
+  heap: gmap Z sl_val; (* not used yet, maybe for allocating lists later? *)
+}.
+
+Fixpoint subst_list (xs: list string) (vs: list sl_val) (e: sl_expr): sl_expr :=
+    match xs, vs with
+    | x :: xs', v :: vs' => subst_list xs' vs' (subst x v e)
+    | _, _ => e
     end.
 
-Inductive sl_step : sl_expr * heap -> sl_expr * heap -> Prop :=
-| BetaS x e1 e2 e' σ :
-     is_val e2 ->
-     e' = subst' x e2 e1 ->
-     sl_step (App (Lam x e1) e2, σ) (e', σ)
-| TBetaS e1 σ :
-      sl_step (TApp (TLam e1), σ) (e1, σ)
-| UnpackS e1 e2 e' x σ :
-      is_val e1 ->
-      e' = subst' x e1 e2 ->
-      sl_step (Unpack x (Pack e1) e2, σ) (e', σ)
-| UnOpS op e v v' σ :
-     to_val e = Some v ->
-     un_op_eval op v = Some v' ->
-     sl_step (UnOp op e, σ) (of_val v', σ)
-| BinOpS op e1 v1 e2 v2 v' σ :
-     to_val e1 = Some v1 ->
-     to_val e2 = Some v2 ->
-     bin_op_eval op v1 v2 = Some v' ->
-     sl_step (BinOp op e1 e2, σ) (of_val v', σ)
-| IfTrueS e1 e2 σ :
-     sl_step (If (Lit (LitBool true)) e1 e2, σ) (e1, σ)
-| IfFalseS e1 e2 σ :
-     sl_step (If (Lit (LitBool false)) e1 e2, σ) (e2, σ)
-| FstS e1 e2 σ :
-     is_val e1 ->
-     is_val e2 ->
-     sl_step (Fst (Pair e1 e2), σ) (e1, σ)
-| SndS e1 e2 σ :
-     is_val e1 ->
-     is_val e2 ->
-     sl_step (Snd (Pair e1 e2), σ) (e2, σ)
-| CaseLS e e1 e2 σ :
-     is_val e ->
-     sl_step (Case (InjL e) e1 e2, σ) (App e1 e, σ)
-| CaseRS e e1 e2 σ :
-     is_val e ->
-     sl_step (Case (InjR e) e1 e2, σ) (App e2 e, σ)
-| UnrollS e σ :
-      is_val e ->
-      sl_step (Unroll (Roll e), σ) (e, σ)
-| NewS e v σ l :
-     σ !! l = None ->
-     to_val e = Some v ->
-     sl_step (New e, σ) (Lit $ LitLoc l, init_heap l 1 v σ)
-| LoadS l v σ :
-     σ !! l = Some v ->
-     sl_step (Load (Lit $ LitLoc l), σ) (of_val v, σ)
-| StoreS l v w e2 σ :
-     σ !! l = Some v ->
-     to_val e2 = Some w ->
-     sl_step (Store (Lit $ LitLoc l) e2, σ)
-               (Lit LitUnit, <[l:=w]> σ)
-.
+Inductive sl_step : sl_expr * sl_state -> sl_expr * sl_state -> Prop :=
+| VarStep var state val:
+    state.(env) !! var = Some val ->
+    sl_step (VarExpr var, state) (ValExpr val, state)
+| AssignStep var expr val val' state:
+    to_val expr = Some val' ->
+    state.(env) !! var = Some val ->
+    sl_step (<{var ,= expr}>, state)
+            (ValExpr val',
+                {| env := <[var := val']> state.(env); heap := state.(heap) |})
+| DeclareImmutStep var type expr val state:
+    to_val expr = Some val ->
+    sl_step (<{var: type = expr}>, state)
+            (ValExpr val,
+                {| env := <[var := val]> state.(env); heap := state.(heap) |})
+| DeclareMutStep var type expr val state:
+    to_val expr = Some val ->
+    sl_step (<{var; type = expr}>, state)
+            (ValExpr val,
+                {| env := <[var := val]> state.(env); heap := state.(heap) |})
+| BinOpStep op e1 e2 v1 v2 val state:
+    to_val e1 = Some v1 ->
+    to_val e2 = Some v2 ->
+    bin_op_eval op v1 v2 = Some val ->
+    sl_step (BinaryExpr op e1 e2, state) (ValExpr val, state)
+| SeqConsStep expr expr' exprs state state':
+    sl_step (expr, state) (expr', state') ->
+    sl_step (Seq (expr :: exprs), state) (Seq (expr' :: exprs), state')
+| SeqValStep val exprs state:
+    sl_step (Seq (ValExpr val :: exprs), state) (Seq exprs, state)
+| SeqNilStep state:
+    sl_step (Seq [], state) (ValExpr (LitVal (LitZ 0)), state)
+| WhileTrue cond body v state:
+    to_val cond = Some (LitVal (LitBool true)) ->
+    sl_step (WhileExpr cond body, state) (Seq [body; WhileExpr cond body], state)
+| WhileFalse cond body state:
+    to_val cond = Some (LitVal (LitBool false)) ->
+    sl_step (WhileExpr cond body, state) (ValExpr (LitVal (LitZ 0)), state)
+| CallClosureStep func args v_args param_names body state:
+    to_val func = Some (ClosureVal param_names body) ->
+    Forall2 (λ e v, to_val e = Some v) args v_args ->
+    length param_names = length v_args ->
+    let exprs := subst_list param_names v_args body in
+    sl_step (CallExpr func args, state) (exprs, state).

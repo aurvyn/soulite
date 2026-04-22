@@ -65,6 +65,8 @@ Notation "{ typeA .. typeZ -> ret_typeA .. ret_typeZ }" :=
     (in custom sl at level 75).
 Notation "if_true <- cond ; if_false" := (TernaryExpr cond if_true if_false)
     (in custom sl at level 80, left associativity).
+Notation "name ,= expr" := (AssignExpr name expr)
+    (in custom sl at level 85, right associativity).
 Notation "name : type = expr" := (DeclareExpr name false type expr)
     (in custom sl at level 90, right associativity).
 Notation "name ; type = expr" := (DeclareExpr name true type expr)
