@@ -2,6 +2,7 @@ From Stdlib Require Import String.
 From Stdlib Require Import ZArith.
 From Soulite Require Import ast.
 
+Coercion LitBool: bool >-> sl_lit.
 Coercion LitN: nat >-> sl_lit.
 Coercion LitZ: Z >-> sl_lit.
 Coercion LitString: string >-> sl_lit.

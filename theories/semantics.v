@@ -4,6 +4,32 @@ From stdpp Require Import gmap.
 From Soulite Require Import ast.
 From Soulite Require Import notation.
 
+Definition binop_eval_Z (op: binop) (n1 n2: Z): option sl_lit :=
+    match op with
+    | PlusOp => Some (LitZ (n1 + n2))
+    | MinusOp => Some (LitZ (n1 - n2))
+    | MultOp => Some (LitZ (n1 * n2))
+    | QuotOp => Some (LitZ (Z.quot n1 n2))
+    | RemOp => Some (LitZ (Z.rem n1 n2))
+    | LtOp => Some (LitBool (bool_decide (n1 < n2)))
+    | LeOp => Some (LitBool (bool_decide (n1 <= n2)))
+    | GtOp => Some (LitBool (bool_decide (n1 > n2)))
+    | GeOp => Some (LitBool (bool_decide (n1 >= n2)))
+    | EqOp => Some (LitBool (bool_decide (n1 = n2)))
+    | NotEqOp => Some (LitBool (bool_decide (n1 <> n2)))
+    | AndOp => Some (LitZ (Z.land n1 n2))
+    | OrOp => Some (LitZ (Z.lor n1 n2))
+    | ShiftLOp => Some (LitZ (Z.shiftl n1 n2))
+    | ShiftROp => Some (LitZ (Z.shiftr n1 n2))
+    | _ => None
+    end%Z.
+
+Definition binop_eval (op: binop) (v1 v2: sl_val): option sl_val :=
+  match v1, v2 with
+  | LitVal (LitZ n1), LitVal (LitZ n2) => LitVal <$> binop_eval_Z op n1 n2
+  | _, _ => None
+  end.
+
 Record sl_state := {
   env: gmap string sl_val;
   heap: gmap Z sl_val; (* not used yet, maybe for allocating lists later? *)
@@ -38,7 +64,7 @@ Inductive sl_step : sl_expr * sl_state -> sl_expr * sl_state -> Prop :=
 | BinOpStep op e1 e2 v1 v2 val state:
     to_val e1 = Some v1 ->
     to_val e2 = Some v2 ->
-    bin_op_eval op v1 v2 = Some val ->
+    binop_eval op v1 v2 = Some val ->
     sl_step (BinaryExpr op e1 e2, state) (ValExpr val, state)
 | SeqConsStep expr expr' exprs state state':
     sl_step (expr, state) (expr', state') ->
@@ -47,7 +73,7 @@ Inductive sl_step : sl_expr * sl_state -> sl_expr * sl_state -> Prop :=
     sl_step (Seq (ValExpr val :: exprs), state) (Seq exprs, state)
 | SeqNilStep state:
     sl_step (Seq [], state) (ValExpr (LitVal (LitZ 0)), state)
-| WhileTrue cond body v state:
+| WhileTrue cond body state:
     to_val cond = Some (LitVal (LitBool true)) ->
     sl_step (WhileExpr cond body, state) (Seq [body; WhileExpr cond body], state)
 | WhileFalse cond body state:

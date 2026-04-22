@@ -27,11 +27,12 @@ Inductive binop :=
 | OrOp          (* || *)
 | ShiftLOp      (* << *)
 | ShiftROp      (* >> *)
-| EndLOp     (* <| *)
+| EndLOp        (* <| *)
 | DotOp         (* .  *)
 .
 
 Inductive sl_lit :=
+| LitBool (b: bool)
 | LitN (n: nat)
 | LitZ (n: Z)
 | LitString (val: string)
