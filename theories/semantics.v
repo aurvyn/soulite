@@ -104,10 +104,10 @@ Record sl_state := {
     heap: gmap Z sl_val; (* not used yet, maybe for allocating lists later? *)
 }.
 
-Fixpoint subst_list (xs: list string) (vs: list sl_val) (e: sl_expr): sl_expr :=
-    match xs, vs with
-    | x :: xs', v :: vs' => subst_list xs' vs' (subst x v e)
-    | _, _ => e
+Fixpoint subst_list (strs: list string) (vals: list sl_val) (expr: sl_expr): sl_expr :=
+    match strs, vals with
+    | str :: strs', val :: vals' => subst_list strs' vals' (subst str val expr)
+    | _, _ => expr
     end.
 
 Inductive sl_step : sl_expr * sl_state -> sl_expr * sl_state -> Prop :=
@@ -137,14 +137,14 @@ Inductive sl_step : sl_expr * sl_state -> sl_expr * sl_state -> Prop :=
     sl_step (BinaryExpr op e1 e2, state) (ValExpr val, state)
 | SeqConsStep expr expr' exprs state state':
     sl_step (expr, state) (expr', state') ->
-    sl_step (Seq (expr :: exprs), state) (Seq (expr' :: exprs), state')
+    sl_step (SeqExpr (expr :: exprs), state) (SeqExpr (expr' :: exprs), state')
 | SeqValStep val exprs state:
-    sl_step (Seq (ValExpr val :: exprs), state) (Seq exprs, state)
+    sl_step (SeqExpr (ValExpr val :: exprs), state) (SeqExpr exprs, state)
 | SeqNilStep state:
-    sl_step (Seq [], state) (ValExpr (LitVal (LitZ 0)), state)
+    sl_step (SeqExpr [], state) (ValExpr (LitVal (LitZ 0)), state)
 | WhileTrue cond body state:
     to_val cond = Some (LitVal (LitBool true)) ->
-    sl_step (WhileExpr cond body, state) (Seq [body; WhileExpr cond body], state)
+    sl_step (WhileExpr cond body, state) (SeqExpr [body; WhileExpr cond body], state)
 | WhileFalse cond body state:
     to_val cond = Some (LitVal (LitBool false)) ->
     sl_step (WhileExpr cond body, state) (ValExpr (LitVal (LitZ 0)), state)

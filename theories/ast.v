@@ -5,6 +5,7 @@ From Stdlib Require Import List.
 
 (* leave out R, Ref, Option, Result, Generic, and Array types *)
 Inductive sl_type :=
+| TypeBool
 | TypeN
 | TypeZ
 | TypeString
@@ -53,7 +54,7 @@ Inductive sl_expr :=
 | AssignExpr (name: string) (expr: sl_expr)
 | ClosureExpr (args: list string) (body: sl_expr)
 | WhileExpr (cond body: sl_expr)
-| Seq (exprs: list sl_expr)
+| SeqExpr (exprs: list sl_expr)
 with sl_val :=
 | LitVal (lit: sl_lit)
 | ClosureVal (args: list string) (body: sl_expr)
@@ -90,15 +91,15 @@ Fixpoint subst (x: string) (v: sl_val) (e: sl_expr): sl_expr :=
     | AssignExpr name expr => AssignExpr name (subst x v expr)
     | ClosureExpr args body => if existsb (eqb x) args then e else ClosureExpr args (subst x v body)
     | WhileExpr cond body => WhileExpr (subst x v cond) (subst x v body)
-    | Seq exprs => Seq (map (subst x v) exprs)
+    | SeqExpr exprs => SeqExpr (map (subst x v) exprs)
     end.
 
-Record sl_function := {
+Record sl_func := {
     name: string;
     params: list string;
     param_types: list sl_type;
-    return_type: list sl_type;
+    return_types: list sl_type;
     body: sl_expr;
 }.
 
-Definition program := prod (list sl_function) sl_expr.
+Definition program := prod (list sl_func) sl_expr.

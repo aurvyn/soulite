@@ -2,10 +2,13 @@ From Stdlib Require Import String.
 From Stdlib Require Import ZArith.
 From Soulite Require Import ast.
 
+Coercion N.of_nat : nat >-> N.
 Coercion LitBool: bool >-> sl_lit.
 Coercion LitN: N >-> sl_lit.
 Coercion LitZ: Z >-> sl_lit.
 Coercion LitString: string >-> sl_lit.
+Coercion LitVal: sl_lit >-> sl_val.
+Coercion ValExpr: sl_val >-> sl_expr.
 
 Declare Custom Entry sl.
 Declare Scope sl_scope.
@@ -15,6 +18,10 @@ Open Scope sl.
 Notation "<{ e }>" := e
     (e custom sl, format "'[hv' <{ '/  ' '[v' e ']' '/' }> ']'"): sl_scope.
 
+Notation "- n" := (-n)%Z
+    (in custom sl at level 5).
+Notation "~ n" := (negb n)
+    (in custom sl at level 5).
 Infix "." := (BinaryExpr DotOp)
     (in custom sl at level 10, left associativity): sl_scope.
 Infix "*" := (BinaryExpr MultOp)
@@ -55,9 +62,9 @@ Notation "expr" := expr
     (in custom sl at level 0, expr constr at level 0).
 Notation "f ( a .. z )" := (CallExpr f (cons a .. (cons z nil) ..))
     (in custom sl at level 0).
-Notation "[ type ]" := (TypeList type)
-    (in custom sl at level 70).
 Notation "[< a .. z >]" := (ListExpr (cons a .. (cons z nil) ..))
+    (in custom sl at level 0).
+Notation "[ type ]" := (TypeList type)
     (in custom sl at level 70).
 Notation "{ typeA .. typeZ -> ret_typeA .. ret_typeZ }" :=
     (TypeClosure
@@ -73,4 +80,15 @@ Notation "name : type = expr" := (DeclareExpr name false type expr)
 Notation "name ; type = expr" := (DeclareExpr name true type expr)
     (in custom sl at level 90, right associativity).
 Notation "( expr )" := expr
-    (in custom sl, expr at level 99).
+    (in custom sl, expr at level 95).
+Notation "f paramA .. paramZ : typeA .. typeZ -> ret_typeA .. ret_typeZ '\n' expr" :=
+    {|
+        name := f;
+        params := cons paramA .. (cons paramZ nil) ..;
+        param_types := cons typeA .. (cons typeZ nil) ..;
+        return_types := cons ret_typeA .. (cons ret_typeZ nil) ..;
+        body := expr
+    |}
+    (in custom sl at level 98).
+Notation "'\t' exprA '\n\t' .. '\n\t' exprZ '\n'" := (SeqExpr (cons exprA .. (cons exprZ nil) ..))
+    (in custom sl at level 99).
