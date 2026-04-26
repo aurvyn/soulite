@@ -81,7 +81,7 @@ Notation "name ; type = expr" := (DeclareExpr name true type expr)
     (in custom sl at level 90, right associativity, format "name ;  type  =  expr").
 Notation "( expr )" := expr
     (in custom sl, expr at level 95, format "( expr )").
-Notation "f paramA .. paramZ : typeA .. typeZ -> ret_typeA .. ret_typeZ \n \t expr" :=
+Notation "f paramA .. paramZ : typeA .. typeZ -> ret_typeA .. ret_typeZ \n \t expr \n" :=
     {|
         name := f;
         params := cons paramA .. (cons paramZ nil) ..;
@@ -90,7 +90,7 @@ Notation "f paramA .. paramZ : typeA .. typeZ -> ret_typeA .. ret_typeZ \n \t ex
         body := expr
     |}
     (in custom sl at level 200, format
-        "f  paramA  ..  paramZ :  typeA  ..  typeZ  ->  ret_typeA  ..  ret_typeZ \n '//' \t   expr").
+        "f  paramA  ..  paramZ :  typeA  ..  typeZ  ->  ret_typeA  ..  ret_typeZ \n '//' \t   expr \n '//'").
 Notation "exprA \n \t exprB" := (SeqExpr exprA exprB)
     (in custom sl at level 100, exprB at level 200, format "exprA \n '//' \t   exprB").
 
