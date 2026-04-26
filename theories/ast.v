@@ -6,11 +6,15 @@ From Stdlib Require Import List.
 (* leave out R, Ref, Option, Result, Generic, and Array types *)
 Inductive sl_type :=
 | TypeBool
-| TypeN
 | TypeZ
 | TypeString
 | TypeList (type: sl_type)
 | TypeClosure (param_types return_type: list sl_type)
+.
+
+Inductive unop :=
+| NegOp     (* -  *)
+| NotOp     (* ~  *)
 .
 
 Inductive binop :=
@@ -35,7 +39,6 @@ Inductive binop :=
 
 Inductive sl_lit :=
 | LitBool (b: bool)
-| LitN (n: N)
 | LitZ (n: Z)
 | LitString (val: string)
 | LitList (vals: list sl_lit)
@@ -46,6 +49,7 @@ Inductive sl_expr :=
 | ValExpr (v: sl_val)
 | VarExpr (name: string)
 | ListExpr (exprs: list sl_expr)
+| UnaryExpr (op: unop) (expr: sl_expr)
 | BinaryExpr (op: binop) (lhs rhs: sl_expr)
 | TernaryExpr (cond if_true if_false: sl_expr)
 | CallExpr (func: sl_expr) (args: list sl_expr)
@@ -54,7 +58,7 @@ Inductive sl_expr :=
 | AssignExpr (name: string) (expr: sl_expr)
 | ClosureExpr (args: list string) (body: sl_expr)
 | WhileExpr (cond body: sl_expr)
-| SeqExpr (exprs: list sl_expr)
+| SeqExpr (e1 e2: sl_expr)
 with sl_val :=
 | LitVal (lit: sl_lit)
 | ClosureVal (args: list string) (body: sl_expr)
@@ -84,6 +88,7 @@ Fixpoint subst (x: string) (v: sl_val) (e: sl_expr): sl_expr :=
     | ValExpr _ => e
     | VarExpr name => if eqb name x then of_val v else VarExpr name
     | ListExpr exprs => ListExpr (map (subst x v) exprs)
+    | UnaryExpr op expr => UnaryExpr op (subst x v expr)
     | BinaryExpr op lhs rhs => BinaryExpr op (subst x v lhs) (subst x v rhs)
     | TernaryExpr cond if_true if_false => TernaryExpr (subst x v cond) (subst x v if_true) (subst x v if_false)
     | CallExpr func args => CallExpr (subst x v func) (map (subst x v) args)
@@ -91,7 +96,7 @@ Fixpoint subst (x: string) (v: sl_val) (e: sl_expr): sl_expr :=
     | AssignExpr name expr => AssignExpr name (subst x v expr)
     | ClosureExpr args body => if existsb (eqb x) args then e else ClosureExpr args (subst x v body)
     | WhileExpr cond body => WhileExpr (subst x v cond) (subst x v body)
-    | SeqExpr exprs => SeqExpr (map (subst x v) exprs)
+    | SeqExpr e1 e2 => SeqExpr (subst x v e1) (subst x v e2)
     end.
 
 Record sl_func := {

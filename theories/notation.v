@@ -2,9 +2,8 @@ From Stdlib Require Import String.
 From Stdlib Require Import ZArith.
 From Soulite Require Import ast.
 
-Coercion N.of_nat : nat >-> N.
+Coercion Z.of_nat: nat >-> Z.
 Coercion LitBool: bool >-> sl_lit.
-Coercion LitN: N >-> sl_lit.
 Coercion LitZ: Z >-> sl_lit.
 Coercion LitString: string >-> sl_lit.
 Coercion LitVal: sl_lit >-> sl_val.
@@ -17,13 +16,14 @@ Open Scope sl.
 
 Notation "<{ e }>" := e
     (e custom sl, format "'[hv' <{ '/  ' '[v' e ']' '/' }> ']'"): sl_scope.
-
-Notation "- n" := (-n)%Z
-    (in custom sl at level 5).
-Notation "~ n" := (negb n)
-    (in custom sl at level 5).
-Infix "." := (BinaryExpr DotOp)
-    (in custom sl at level 10, left associativity): sl_scope.
+Notation "! var" := (VarExpr var)
+    (in custom sl at level 5, format "! var").
+Notation "- expr" := (UnaryExpr NegOp expr)
+    (in custom sl at level 5, format "- expr").
+Notation "~ expr" := (UnaryExpr NotOp expr)
+    (in custom sl at level 5, format "~ expr").
+Notation "e1 . e2" := (BinaryExpr DotOp e1 e2)
+    (in custom sl at level 10, left associativity, format "e1 . e2"): sl_scope.
 Infix "*" := (BinaryExpr MultOp)
     (in custom sl at level 20, left associativity): sl_scope.
 Infix "/" := (BinaryExpr DivOp)
@@ -61,27 +61,27 @@ Infix "||" := (BinaryExpr OrOp)
 Notation "expr" := expr
     (in custom sl at level 0, expr constr at level 0).
 Notation "f ( a .. z )" := (CallExpr f (cons a .. (cons z nil) ..))
-    (in custom sl at level 0).
+    (in custom sl at level 0, format "f ( a  ..  z )").
 Notation "[< a .. z >]" := (ListExpr (cons a .. (cons z nil) ..))
-    (in custom sl at level 0).
+    (in custom sl at level 0, format "[< a  ..  z >]").
 Notation "[ type ]" := (TypeList type)
-    (in custom sl at level 70).
+    (in custom sl at level 70, format "[ type ]").
 Notation "{ typeA .. typeZ -> ret_typeA .. ret_typeZ }" :=
     (TypeClosure
         (cons typeA .. (cons typeZ nil) ..)
         (cons ret_typeA .. (cons ret_typeZ nil) ..))
-    (in custom sl at level 75).
+    (in custom sl at level 75, format "{ typeA  ..  typeZ  ->  ret_typeA  ..  ret_typeZ }").
 Notation "if_true <- cond ; if_false" := (TernaryExpr cond if_true if_false)
     (in custom sl at level 80, left associativity).
-Notation "name ,= expr" := (AssignExpr name expr)
+Infix ",=" := AssignExpr
     (in custom sl at level 85, right associativity).
 Notation "name : type = expr" := (DeclareExpr name false type expr)
-    (in custom sl at level 90, right associativity).
+    (in custom sl at level 90, right associativity, format "name :  type  =  expr").
 Notation "name ; type = expr" := (DeclareExpr name true type expr)
-    (in custom sl at level 90, right associativity).
+    (in custom sl at level 90, right associativity, format "name ;  type  =  expr").
 Notation "( expr )" := expr
-    (in custom sl, expr at level 95).
-Notation "f paramA .. paramZ : typeA .. typeZ -> ret_typeA .. ret_typeZ '\n' expr" :=
+    (in custom sl, expr at level 95, format "( expr )").
+Notation "f paramA .. paramZ : typeA .. typeZ -> ret_typeA .. ret_typeZ \n \t expr" :=
     {|
         name := f;
         params := cons paramA .. (cons paramZ nil) ..;
@@ -89,6 +89,16 @@ Notation "f paramA .. paramZ : typeA .. typeZ -> ret_typeA .. ret_typeZ '\n' exp
         return_types := cons ret_typeA .. (cons ret_typeZ nil) ..;
         body := expr
     |}
-    (in custom sl at level 98).
-Notation "'\t' exprA '\n\t' .. '\n\t' exprZ '\n'" := (SeqExpr (cons exprA .. (cons exprZ nil) ..))
-    (in custom sl at level 99).
+    (in custom sl at level 200, format
+        "f  paramA  ..  paramZ :  typeA  ..  typeZ  ->  ret_typeA  ..  ret_typeZ \n '//' \t   expr").
+Notation "exprA \n \t exprB" := (SeqExpr exprA exprB)
+    (in custom sl at level 100, exprB at level 200, format "exprA \n '//' \t   exprB").
+
+Open Scope string_scope.
+Compute {|
+    name := "func";
+    params := cons "a" (cons "b" nil);
+    param_types := cons TypeZ (cons TypeZ nil);
+    return_types := cons TypeZ (cons TypeZ nil);
+    body := <{"A" : TypeZ = -1 \n\t "1" }>
+|}.

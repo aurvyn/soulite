@@ -17,8 +17,7 @@ Fixpoint list_eqb {A: Type} (eqb_A: A -> A -> bool) (l1 l2: list A): bool :=
 Fixpoint sl_lit_eqb (lit1 lit2: sl_lit): bool :=
     match lit1, lit2 with
     | LitBool b1, LitBool b2 => Bool.eqb b1 b2
-    | LitN n1, LitN n2 => N.eqb n1 n2
-    | LitZ z1, LitZ z2 => Z.eqb z1 z2
+    | LitZ n1, LitZ n2 => Z.eqb n1 n2
     | LitString s1, LitString s2 => String.eqb s1 s2
     | LitList l1, LitList l2 => list_eqb sl_lit_eqb l1 l2
     | _, _ => false
@@ -33,43 +32,23 @@ Definition binop_eval_bool (op: binop) (b1 b2: bool): option sl_lit :=
     | _ => None
     end.
 
-Definition binop_eval_N (op: binop) (n1 n2: N): option sl_lit :=
+Definition binop_eval_Z (op: binop) (n1 n2: Z): option sl_lit :=
     match op with
-    | PlusOp => Some (LitN (n1 + n2))
-    | MinusOp => Some (LitN (n1 - n2))
-    | MultOp => Some (LitN (n1 * n2))
-    | DivOp => Some (LitN (N.div n1 n2))
-    | ModOp => Some (LitN (N.modulo n1 n2))
-    | LtOp => Some (LitBool (N.ltb n1 n2))
-    | LeOp => Some (LitBool (N.leb n1 n2))
-    | GtOp => Some (LitBool (N.ltb n2 n1))
-    | GeOp => Some (LitBool (N.leb n2 n1))
-    | EqOp => Some (LitBool (N.eqb n1 n2))
-    | NotEqOp => Some (LitBool (negb (N.eqb n1 n2)))
-    | AndOp => Some (LitN (N.land n1 n2))
-    | OrOp => Some (LitN (N.lor n1 n2))
-    | ShiftLOp => Some (LitN (N.shiftl n1 n2))
-    | ShiftROp => Some (LitN (N.shiftr n1 n2))
-    | _ => None
-    end.
-
-Definition binop_eval_Z (op: binop) (z1 z2: Z): option sl_lit :=
-    match op with
-    | PlusOp => Some (LitZ (z1 + z2))
-    | MinusOp => Some (LitZ (z1 - z2))
-    | MultOp => Some (LitZ (z1 * z2))
-    | DivOp => Some (LitZ (Z.quot z1 z2))
-    | ModOp => Some (LitZ (Z.rem z1 z2))
-    | LtOp => Some (LitBool (Z.ltb z1 z2))
-    | LeOp => Some (LitBool (Z.leb z1 z2))
-    | GtOp => Some (LitBool (Z.ltb z2 z1))
-    | GeOp => Some (LitBool (Z.leb z2 z1))
-    | EqOp => Some (LitBool (Z.eqb z1 z2))
-    | NotEqOp => Some (LitBool (negb (Z.eqb z1 z2)))
-    | AndOp => Some (LitZ (Z.land z1 z2))
-    | OrOp => Some (LitZ (Z.lor z1 z2))
-    | ShiftLOp => Some (LitZ (Z.shiftl z1 z2))
-    | ShiftROp => Some (LitZ (Z.shiftr z1 z2))
+    | PlusOp => Some (LitZ (n1 + n2))
+    | MinusOp => Some (LitZ (n1 - n2))
+    | MultOp => Some (LitZ (n1 * n2))
+    | DivOp => Some (LitZ (Z.quot n1 n2))
+    | ModOp => Some (LitZ (Z.rem n1 n2))
+    | LtOp => Some (LitBool (Z.ltb n1 n2))
+    | LeOp => Some (LitBool (Z.leb n1 n2))
+    | GtOp => Some (LitBool (Z.ltb n2 n1))
+    | GeOp => Some (LitBool (Z.leb n2 n1))
+    | EqOp => Some (LitBool (Z.eqb n1 n2))
+    | NotEqOp => Some (LitBool (negb (Z.eqb n1 n2)))
+    | AndOp => Some (LitZ (Z.land n1 n2))
+    | OrOp => Some (LitZ (Z.lor n1 n2))
+    | ShiftLOp => Some (LitZ (Z.shiftl n1 n2))
+    | ShiftROp => Some (LitZ (Z.shiftr n1 n2))
     | _ => None
     end.
 
@@ -92,7 +71,6 @@ Definition binop_eval_list (op: binop) (l1 l2: list sl_lit): option sl_lit :=
 Definition binop_eval (op: binop) (v1 v2: sl_val): option sl_val :=
     LitVal <$> match v1, v2 with
     | LitVal (LitBool b1), LitVal (LitBool b2) => binop_eval_bool op b1 b2
-    | LitVal (LitN n1), LitVal (LitN n2) => binop_eval_N op n1 n2
     | LitVal (LitZ n1), LitVal (LitZ n2) => binop_eval_Z op n1 n2
     | LitVal (LitString s1), LitVal (LitString s2) => binop_eval_string op s1 s2
     | LitVal (LitList l1), LitVal (LitList l2) => binop_eval_list op l1 l2
@@ -135,16 +113,14 @@ Inductive sl_step : sl_expr * sl_state -> sl_expr * sl_state -> Prop :=
     to_val e2 = Some v2 ->
     binop_eval op v1 v2 = Some val ->
     sl_step (BinaryExpr op e1 e2, state) (ValExpr val, state)
-| SeqConsStep expr expr' exprs state state':
-    sl_step (expr, state) (expr', state') ->
-    sl_step (SeqExpr (expr :: exprs), state) (SeqExpr (expr' :: exprs), state')
-| SeqValStep val exprs state:
-    sl_step (SeqExpr (ValExpr val :: exprs), state) (SeqExpr exprs, state)
-| SeqNilStep state:
-    sl_step (SeqExpr [], state) (ValExpr (LitVal (LitZ 0)), state)
+| SeqConsStep e1 e1' e2 state state':
+    sl_step (e1, state) (e1', state') ->
+    sl_step (SeqExpr e1 e2, state) (SeqExpr e1' e2, state')
+| SeqValStep val expr state:
+    sl_step (SeqExpr (ValExpr val) expr, state) (expr, state)
 | WhileTrue cond body state:
     to_val cond = Some (LitVal (LitBool true)) ->
-    sl_step (WhileExpr cond body, state) (SeqExpr [body; WhileExpr cond body], state)
+    sl_step (WhileExpr cond body, state) (SeqExpr body (WhileExpr cond body), state)
 | WhileFalse cond body state:
     to_val cond = Some (LitVal (LitBool false)) ->
     sl_step (WhileExpr cond body, state) (ValExpr (LitVal (LitZ 0)), state)
