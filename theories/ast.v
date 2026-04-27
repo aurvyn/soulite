@@ -36,7 +36,7 @@ Inductive sl_lit :=
 | LitBoolean (b: bool)
 | LitZ (n: Z)
 | LitString (val: string)
-| LitList (vals: list sl_lit)
+| LitList (lits: list sl_lit)
 .
 
 (* leave out This, None, Ref, Some, Ok, and Err expressions *)
@@ -48,7 +48,7 @@ Inductive sl_expr :=
 | BinaryExpr (op: binop) (lhs rhs: sl_expr)
 | TernaryExpr (cond if_true if_false: sl_expr)
 | CallClosureExpr (closure: sl_expr) (args: list sl_expr)
-| CallFunctionExpr (func: string) (args: list sl_expr)
+(* | CallFunctionExpr (func: string) (args: list sl_expr) *)
 (* assume that type inferrence is not used and type is always provided *)
 | DeclareExpr (name: string) (mutable: bool) (type: sl_type) (expr: sl_expr)
 | AssignExpr (name: string) (expr: sl_expr)
@@ -63,7 +63,7 @@ with sl_val :=
 Definition alloc_length (e: sl_expr): nat :=
     match e with
     | ListExpr exprs => length exprs
-    | ValExpr (LitVal (LitList vals)) => length vals
+    | ValExpr (LitVal (LitList lits)) => length lits
     | _ => 1
     end.
 
@@ -95,7 +95,7 @@ Fixpoint subst (x: string) (v: sl_val) (e: sl_expr): sl_expr :=
     | BinaryExpr op lhs rhs => BinaryExpr op (subst x v lhs) (subst x v rhs)
     | TernaryExpr cond if_true if_false => TernaryExpr (subst x v cond) (subst x v if_true) (subst x v if_false)
     | CallClosureExpr closure args => CallClosureExpr (subst x v closure) (map (subst x v) args)
-    | CallFunctionExpr func args => CallFunctionExpr func (map (subst x v) args)
+ (* | CallFunctionExpr func args => CallFunctionExpr func (map (subst x v) args) *)
     | DeclareExpr name mutable type expr => DeclareExpr name mutable type (subst x v expr)
     | AssignExpr name expr => AssignExpr name (subst x v expr)
     | ClosureExpr params body => if existsb (eqb x) params then e else ClosureExpr params (subst x v body)

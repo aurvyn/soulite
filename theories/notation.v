@@ -58,8 +58,8 @@ Notation "closure ( a .. z )" := (CallClosureExpr closure (cons a .. (cons z nil
     (in custom sl at level 0, format "closure ( a  ..  z )").
 Notation "[< a .. z >]" := (ListExpr (cons a .. (cons z nil) ..))
     (in custom sl at level 0, format "[< a  ..  z >]").
-Notation "! f ( a .. z )" := (CallFunctionExpr f (cons a .. (cons z nil) ..))
-    (in custom sl at level 5, format "! f ( a  ..  z )").
+(* Notation "! f ( a .. z )" := (CallFunctionExpr f (cons a .. (cons z nil) ..))
+    (in custom sl at level 5, format "! f ( a  ..  z )"). *)
 Notation "[ type ]" := (TypeList type)
     (in custom sl at level 70, format "[ type ]").
 Notation "{ typeA .. typeZ -> ret_typeA .. ret_typeZ }" :=
