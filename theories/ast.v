@@ -1,7 +1,4 @@
-From Stdlib Require Import String.
-From Stdlib Require Import NArith.
-From Stdlib Require Import ZArith.
-From Stdlib Require Import List.
+From Stdlib Require Import String ZArith List.
 
 (* leave out R, Ref, Option, Result, Generic, and Array types *)
 Inductive sl_type :=
@@ -33,12 +30,10 @@ Inductive binop :=
 | OrOp      (* || *)
 | ShiftLOp  (* << *)
 | ShiftROp  (* >> *)
-| EndLOp    (* <| *)
-| DotOp     (* .  *)
 .
 
 Inductive sl_lit :=
-| LitBool (b: bool)
+| LitBoolean (b: bool)
 | LitZ (n: Z)
 | LitString (val: string)
 | LitList (vals: list sl_lit)
@@ -46,23 +41,31 @@ Inductive sl_lit :=
 
 (* leave out This, None, Ref, Some, Ok, and Err expressions *)
 Inductive sl_expr :=
-| ValExpr (v: sl_val)
+| ValExpr (val: sl_val)
 | VarExpr (name: string)
 | ListExpr (exprs: list sl_expr)
 | UnaryExpr (op: unop) (expr: sl_expr)
 | BinaryExpr (op: binop) (lhs rhs: sl_expr)
 | TernaryExpr (cond if_true if_false: sl_expr)
-| CallExpr (func: sl_expr) (args: list sl_expr)
+| CallClosureExpr (closure: sl_expr) (args: list sl_expr)
+| CallFunctionExpr (func: string) (args: list sl_expr)
 (* assume that type inferrence is not used and type is always provided *)
 | DeclareExpr (name: string) (mutable: bool) (type: sl_type) (expr: sl_expr)
 | AssignExpr (name: string) (expr: sl_expr)
-| ClosureExpr (args: list string) (body: sl_expr)
+| ClosureExpr (params: list string) (body: sl_expr)
 | WhileExpr (cond body: sl_expr)
 | SeqExpr (e1 e2: sl_expr)
 with sl_val :=
 | LitVal (lit: sl_lit)
-| ClosureVal (args: list string) (body: sl_expr)
+| ClosureVal (params: list string) (body: sl_expr)
 .
+
+Definition alloc_length (e: sl_expr): nat :=
+    match e with
+    | ListExpr exprs => length exprs
+    | ValExpr (LitVal (LitList vals)) => length vals
+    | _ => 1
+    end.
 
 Notation of_val := ValExpr (only parsing).
 
@@ -91,10 +94,11 @@ Fixpoint subst (x: string) (v: sl_val) (e: sl_expr): sl_expr :=
     | UnaryExpr op expr => UnaryExpr op (subst x v expr)
     | BinaryExpr op lhs rhs => BinaryExpr op (subst x v lhs) (subst x v rhs)
     | TernaryExpr cond if_true if_false => TernaryExpr (subst x v cond) (subst x v if_true) (subst x v if_false)
-    | CallExpr func args => CallExpr (subst x v func) (map (subst x v) args)
+    | CallClosureExpr closure args => CallClosureExpr (subst x v closure) (map (subst x v) args)
+    | CallFunctionExpr func args => CallFunctionExpr func (map (subst x v) args)
     | DeclareExpr name mutable type expr => DeclareExpr name mutable type (subst x v expr)
     | AssignExpr name expr => AssignExpr name (subst x v expr)
-    | ClosureExpr args body => if existsb (eqb x) args then e else ClosureExpr args (subst x v body)
+    | ClosureExpr params body => if existsb (eqb x) params then e else ClosureExpr params (subst x v body)
     | WhileExpr cond body => WhileExpr (subst x v cond) (subst x v body)
     | SeqExpr e1 e2 => SeqExpr (subst x v e1) (subst x v e2)
     end.
