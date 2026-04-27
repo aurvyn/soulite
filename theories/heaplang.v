@@ -29,14 +29,14 @@ Definition compile_binop (op: binop) (lhs rhs: expr): expr :=
 
 Fixpoint compile_str (l: expr) (str: string): expr :=
     match str with
-    | EmptyString => #()
-    | String c EmptyString => Store l #(Z.of_N (N_of_ascii c))
+    | "" => NONEV
+    | String c "" => Store l #(Z.of_N (N_of_ascii c))
     | String c s => Store l #(Z.of_N (N_of_ascii c));; compile_str (BinOp OffsetOp l #1) s
     end.
 
 Fixpoint compile_list (exprs: list expr): expr :=
     match exprs with
-    | [] => #()
+    | [] => NONEV
     | e :: es => Alloc (e, compile_list es)
     end.
 
@@ -44,7 +44,6 @@ Fixpoint compile_lit (lit: sl_lit): expr :=
     match lit with
     | LitBoolean b => #b
     | LitZ n => #n
-    | LitString "" => #() (* disallow empty strings *)
     | LitString str => let: "loc" := AllocN #(String.length str) #0 in
         compile_str "loc" str;; "loc"
     | LitList lits => compile_list (map compile_lit lits)
@@ -82,7 +81,7 @@ Fixpoint compile_expr (e: sl_expr): expr :=
     | UnaryExpr op expr => UnOp (compile_unop op) (compile_expr expr)
     | BinaryExpr op lhs rhs => (compile_binop op (compile_expr lhs) (compile_expr rhs))
     | <{if_true <- cond;; if_false}> => if: compile_expr cond then compile_expr if_true else compile_expr if_false
-    | CallClosureExpr closure params => compile_call_closure (compile_expr closure) (rev (map compile_expr params))
+    | CallClosureExpr closure params => compile_call_closure (compile_expr closure) (map compile_expr params)
  (* | CallFunctionExpr name params => compile_call_closure name (rev (map compile_expr params)) *)
     | <{name; type = expr}> => ref (compile_expr expr) (* end of sequence *)
     | <{name: type = expr}> => compile_expr expr (* end of sequence *)
