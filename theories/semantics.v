@@ -71,11 +71,6 @@ Definition binop_eval (op: binop) (v1 v2: sl_val): option sl_val :=
     | _, _ => None
     end.
 
-Record sl_state := {
-    env: gmap string sl_val;
-    heap: gmap Z sl_val; (* not used yet, maybe for allocating lists later? *)
-}.
-
 Fixpoint subst_list (strs: list string) (vals: list sl_val) (expr: sl_expr): sl_expr :=
     match strs, vals with
     | str :: strs', val :: vals' => subst_list strs' vals' (subst str val expr)
@@ -93,18 +88,15 @@ Inductive sl_step : sl_expr * sl_state -> sl_expr * sl_state -> Prop :=
     (Hval: to_val expr = Some val')
     (Hexist: state.(env) !! var = Some val):
         sl_step (<{var ,= expr}>, state)
-                (ValExpr val',
-                    {| env := <[var := val']> state.(env); heap := state.(heap) |})
+                (ValExpr val', Build_sl_state (<[var := val']> state.(env)) state.(heap))
 | DeclareImmutStep var type expr val state
     (Hval: to_val expr = Some val):
         sl_step (<{var: type = expr}>, state)
-                (ValExpr val,
-                    {| env := <[var := val]> state.(env); heap := state.(heap) |})
+                (ValExpr val, Build_sl_state (<[var := val]> state.(env)) state.(heap))
 | DeclareMutStep var type expr val state
     (Hval: to_val expr = Some val):
         sl_step (<{var; type = expr}>, state)
-                (ValExpr val,
-                    {| env := <[var := val]> state.(env); heap := state.(heap) |})
+                (ValExpr val, Build_sl_state (<[var := val]> state.(env)) state.(heap))
 | BinOpStepL op e1 e2 e1' state state'
     (Hstep: sl_step (e1, state) (e1', state')):
         sl_step (BinaryExpr op e1 e2, state) (BinaryExpr op e1' e2, state')

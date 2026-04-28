@@ -1,4 +1,5 @@
 From Stdlib Require Import String ZArith List.
+From stdpp Require Import gmap.
 
 (* leave out R, Ref, Option, Result, Generic, and Array types *)
 Inductive sl_type :=
@@ -89,7 +90,7 @@ Qed.
 Fixpoint subst (x: string) (v: sl_val) (e: sl_expr): sl_expr :=
     match e with
     | ValExpr _ => e
-    | VarExpr name => if eqb name x then of_val v else VarExpr name
+    | VarExpr name => if String.eqb name x then of_val v else VarExpr name
     | ListExpr exprs => ListExpr (map (subst x v) exprs)
     | UnaryExpr op expr => UnaryExpr op (subst x v expr)
     | BinaryExpr op lhs rhs => BinaryExpr op (subst x v lhs) (subst x v rhs)
@@ -98,7 +99,7 @@ Fixpoint subst (x: string) (v: sl_val) (e: sl_expr): sl_expr :=
  (* | CallFunctionExpr func args => CallFunctionExpr func (map (subst x v) args) *)
     | DeclareExpr name mutable type expr => DeclareExpr name mutable type (subst x v expr)
     | AssignExpr name expr => AssignExpr name (subst x v expr)
-    | ClosureExpr params body => if existsb (eqb x) params then e else ClosureExpr params (subst x v body)
+    | ClosureExpr params body => if existsb (String.eqb x) params then e else ClosureExpr params (subst x v body)
     | WhileExpr cond body => WhileExpr (subst x v cond) (subst x v body)
     | SeqExpr e1 e2 => SeqExpr (subst x v e1) (subst x v e2)
     end.
@@ -111,4 +112,10 @@ Record sl_func := {
     body: sl_expr;
 }.
 
+Record sl_state := {
+    env: gmap string sl_val;
+    heap: gmap Z sl_val;
+}.
+
 Definition program := prod (list sl_func) sl_expr.
+Definition empty_state := Build_sl_state empty empty.

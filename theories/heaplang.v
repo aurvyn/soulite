@@ -1,4 +1,4 @@
-From Stdlib Require Import String Ascii.
+From Stdlib Require Import String.
 From iris.heap_lang Require Import notation.
 From Soulite Require Import ast notation semantics.
 
@@ -17,21 +17,20 @@ Definition compile_binop (op: binop) (lhs rhs: expr): expr :=
     | ModOp => BinOp RemOp lhs rhs
     | LtOp => lhs < rhs
     | LeOp => BinOp heap_lang.LeOp lhs rhs
-    | GtOp => BinOp heap_lang.LeOp rhs lhs
-    | GeOp => rhs < lhs
+    | GtOp => rhs < lhs
+    | GeOp => BinOp heap_lang.LeOp rhs lhs
     | EqOp => lhs = rhs
     | NotEqOp => ~(lhs = rhs)
     | AndOp => lhs && rhs
     | OrOp => lhs || rhs
     | ShiftLOp => BinOp heap_lang.ShiftLOp lhs rhs
     | ShiftROp => BinOp heap_lang.ShiftROp lhs rhs
-    end%E.
+    end.
 
 Fixpoint compile_str (l: expr) (str: string): expr :=
     match str with
     | "" => NONEV
-    | String c "" => Store l #(Z.of_N (N_of_ascii c))
-    | String c s => Store l #(Z.of_N (N_of_ascii c));; compile_str (BinOp OffsetOp l #1) s
+    | String c s => Store l #c;; compile_str (BinOp OffsetOp l #1) s
     end.
 
 Fixpoint compile_list (exprs: list expr): expr :=
@@ -44,8 +43,10 @@ Fixpoint compile_lit (lit: sl_lit): expr :=
     match lit with
     | LitBoolean b => #b
     | LitZ n => #n
-    | LitString str => let: "loc" := AllocN #(String.length str) #0 in
-        compile_str "loc" str;; "loc"
+    | LitString str =>
+        if Nat.eqb (String.length str) 0 then NONEV
+        else (let: "loc" := AllocN #(String.length str) #0 in
+            compile_str "loc" str;; "loc")%E
     | LitList lits => compile_list (map compile_lit lits)
     end.
 
@@ -63,12 +64,15 @@ Fixpoint compile_closure (params: list string) (body: expr): expr :=
     | param :: params' => Lam param (compile_closure params' body)
     end.
 
-Fixpoint compile_closurev (params: list string) (body: expr): expr :=
-    Val match params with
+Fixpoint compile_closurev_val (params: list string) (body: expr): val :=
+    match params with
     | [] => LamV BAnon body
     | [param] => LamV param body
-    | param :: params' => LamV param (compile_closurev params' body)
+    | param :: params' => LamV param (Val (compile_closurev_val params' body))
     end.
+
+Definition compile_closurev (params: list string) (body: expr): expr :=
+    Val (compile_closurev_val params body).
 
 Fixpoint compile_expr (e: sl_expr): expr :=
     match e with

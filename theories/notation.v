@@ -1,4 +1,4 @@
-From Stdlib Require Import String ZArith.
+From Stdlib Require Import String ZArith Ascii.
 From Soulite Require Import ast.
 
 Coercion Z.of_nat: nat >-> Z.
@@ -7,6 +7,10 @@ Coercion LitZ: Z >-> sl_lit.
 Coercion LitString: string >-> sl_lit.
 Coercion LitVal: sl_lit >-> sl_val.
 Coercion ValExpr: sl_val >-> sl_expr.
+
+(* coerce ascii into Z, for string allocations in heap_lang *)
+Coercion N_of_ascii: ascii >-> N.
+Coercion Z.of_N: N >-> Z.
 
 Declare Custom Entry sl.
 Declare Scope sl_scope.
@@ -56,12 +60,12 @@ Notation "expr" := expr
     (in custom sl at level 0, expr constr at level 0).
 Notation "closure ( a .. z )" := (CallClosureExpr closure (cons a .. (cons z nil) ..))
     (in custom sl at level 0, format "closure ( a  ..  z )").
-Notation "[< a .. z >]" := (ListExpr (cons a .. (cons z nil) ..))
-    (in custom sl at level 0, format "[< a  ..  z >]").
+Notation "[ a .. z ]" := (ListExpr (cons a .. (cons z nil) ..))
+    (in custom sl at level 0, a, z at level 1, format "[ a  ..  z ]").
 (* Notation "! f ( a .. z )" := (CallFunctionExpr f (cons a .. (cons z nil) ..))
     (in custom sl at level 5, format "! f ( a  ..  z )"). *)
-Notation "[ type ]" := (TypeList type)
-    (in custom sl at level 70, format "[ type ]").
+(* Notation "[ type ]" := (TypeList type)
+    (in custom sl at level 70, format "[ type ]"). *)
 Notation "{ typeA .. typeZ -> ret_typeA .. ret_typeZ }" :=
     (TypeClosure
         (cons typeA .. (cons typeZ nil) ..)
@@ -90,12 +94,24 @@ Notation "f paramA .. paramZ : typeA .. typeZ -> ret_typeA .. ret_typeZ \n \t ex
 Notation "exprA \n \t exprB" := (SeqExpr exprA exprB)
     (in custom sl at level 100, exprB at level 200, format "exprA \n '//' \t   exprB").
 
-(* Examples: *)
-Open Scope string_scope.
-Compute {|
-    name := "func";
-    params := cons "a" (cons "b" nil);
-    param_types := cons TypeZ (cons TypeZ nil);
-    return_types := cons TypeZ (cons TypeZ nil);
-    body := <{"A" : TypeZ = -1 \n\t "1" }>
-|}.
+
+Section examples. Open Scope string_scope.
+
+    Compute <{ 1 + 2 * 3 }>.
+    Compute <{ !"x" + !"y" }>.
+    (* Compute <{ [ 1 2 3 ] }>. *)
+
+    (*<{
+        "func" "a" "b": TypeZ TypeZ -> TypeZ TypeZ\n
+        \t  "A": TypeZ = -(1%Z)\n
+        \t  "1"\n
+    }>*)
+    Compute {|
+        name := "func";
+        params := cons "a" (cons "b" nil);
+        param_types := cons TypeZ (cons TypeZ nil);
+        return_types := cons TypeZ (cons TypeZ nil);
+        body := <{"A" : TypeZ = -1 \n\t "1" }>
+    |}.
+
+End examples.
